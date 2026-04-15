@@ -88,11 +88,11 @@ export function ChatPage({ result }: ChatPageProps) {
       return;
     }
 
-    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === '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') {
+    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'PASTE_YOUR_KEY_HERE') {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, text: 'Add your Anthropic API key in src/shared/config.ts to enable chat.' }
+            ? { ...m, text: 'Add your Anthropic API key to .env to enable chat.' }
             : m
         )
       );
@@ -125,7 +125,7 @@ export function ChatPage({ result }: ChatPageProps) {
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === assistantId ? { ...m, text: 'Something went wrong. Check your API key in src/shared/config.ts.' } : m
+          m.id === assistantId ? { ...m, text: 'Something went wrong. Check your API key in .env.' } : m
         )
       );
     } finally {

@@ -70,7 +70,7 @@ async function handleScanRequest(): Promise<ScanResult> {
 }
 
 async function analyzeWithClaude(page: PageSnapshot): Promise<SummaryCard[]> {
-  if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === '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') {
+  if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'PASTE_YOUR_KEY_HERE') {
     return buildFallbackHighlights(page);
   }
 
