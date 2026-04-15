@@ -299,7 +299,7 @@ function SummarySection({
           {result
             ? aiMode
               ? 'Claude AI'
-              : (scanError ? 'Fallback mode' : 'No API key')
+              : (scanError ? 'Fallback mode' : 'Scan Error')
             : 'Example'}
         </div>
       </div>
