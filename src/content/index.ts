@@ -11,7 +11,7 @@ chrome.runtime.onMessage.addListener(
       status: 'complete',
       generatedAt: Date.now(),
       page,
-      highlights: buildHighlights(page)
+      cards: buildHighlights(page)
     };
 
     sendResponse(result);
@@ -33,12 +33,12 @@ function collectPageSnapshot(): PageSnapshot {
     url: location.href,
     hostname: location.hostname || 'local-session',
     selection,
-    excerpt: bodyText.slice(0, 360) || 'No visible text was detected on this page.',
+    excerpt: bodyText.slice(0, 15000) || 'No visible text was detected on this page.',
     headings
   };
 }
 
-function buildHighlights(page: PageSnapshot): ScanResult['highlights'] {
+function buildHighlights(page: PageSnapshot): ScanResult['cards'] {
   return [
     {
       title: 'Document tone',

@@ -2,7 +2,7 @@
   "name": "readibly",
   "private": true,
   "version": "0.1.0",
-  "description": "Readibly is a premium Chrome side panel extension that summarizes legal agreements into clear, structured insights.",
+  "description": "Readibly is a premium Chrome side panel extension that summarizes legal agreements into clear, accessible language.",
   "type": "module",
   "scripts": {
     "dev": "vite build --watch",
@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.89.0",
     "@fontsource/inter": "^5.0.18",
     "@fontsource/manrope": "^5.0.18",
     "react": "^18.3.1",

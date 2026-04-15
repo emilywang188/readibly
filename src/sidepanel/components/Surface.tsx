@@ -6,13 +6,10 @@ type SurfaceProps = ComponentPropsWithoutRef<'div'> & {
 };
 
 export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(
-  ({ className = '', tone = 'glass', children, ...rest }, ref) => {
-    return (
-      <div ref={ref} className={`surface surface--${tone} ${className}`.trim()} {...rest}>
-        {children}
-      </div>
-    );
-  }
+  ({ className = '', tone = 'glass', children, ...rest }, ref) => (
+    <div ref={ref} className={`surface surface--${tone} ${className}`.trim()} {...rest}>
+      {children}
+    </div>
+  )
 );
-
 Surface.displayName = 'Surface';

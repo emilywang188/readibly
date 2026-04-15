@@ -1,4 +1,13 @@
-import type { ClosePanelMessage, CollectPageContextMessage, RuntimeMessage, ScanResult } from '../shared/types';
+import Anthropic from '@anthropic-ai/sdk';
+import type {
+  ClosePanelMessage,
+  CollectPageContextMessage,
+  PageSnapshot,
+  RuntimeMessage,
+  ScanResult,
+  SummaryCard
+} from '../shared/types';
+import { ANTHROPIC_API_KEY, CLAUDE_MODEL } from '../shared/config';
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {
@@ -44,11 +53,13 @@ async function handleScanRequest(): Promise<ScanResult> {
     );
 
     if (response && typeof response === 'object' && 'page' in response) {
-      const result = response as ScanResult;
+      const scanResult = response as ScanResult;
+      const cards = await analyzeWithClaude(scanResult.page);
       return {
-        ...result,
+        status: 'complete',
         generatedAt: Date.now(),
-        status: 'complete'
+        page: scanResult.page,
+        cards: cards
       };
     }
   } catch {
@@ -56,6 +67,69 @@ async function handleScanRequest(): Promise<ScanResult> {
   }
 
   return buildFallbackResult(activeTab.title ?? 'Untitled page');
+}
+
+async function analyzeWithClaude(page: PageSnapshot): Promise<SummaryCard[]> {
+  if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === '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') {
+    return buildFallbackHighlights(page);
+  }
+
+  const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+  const systemPrompt = `You are a legal document analyst embedded in a browser extension called Readibly. The user has provided text from a Terms & Conditions, Privacy Policy, or similar agreement. Extract the most important clauses and produce a structured JSON summary.
+
+Return ONLY valid JSON with no markdown fences, matching this schema exactly:
+{"highlights":[{"title":"string","body":"string"}]}`;
+
+  const userPrompt = `Analyze this agreement from ${page.hostname}:
+
+Title: ${page.title}
+URL: ${page.url}
+
+Document text:
+${page.excerpt}
+
+Return 4-6 highlights covering the most important topics from: data collection/sharing, payment/billing, auto-renewal, liability limits, arbitration/dispute resolution, account termination, and unusually broad rights granted to the provider. Be specific — paraphrase actual language from the document. Keep each body to 1-3 sentences. Return JSON only.`;
+
+  try {
+    const stream = client.messages.stream({
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    });
+
+    const msg = await stream.finalMessage();
+    const text = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : '';
+    const parsed = JSON.parse(text) as { highlights: SummaryCard[] };
+
+    if (Array.isArray(parsed.highlights) && parsed.highlights.length > 0) {
+      return parsed.highlights;
+    }
+  } catch {
+    // Fall through to local fallback.
+  }
+
+  return buildFallbackHighlights(page);
+}
+
+function buildFallbackHighlights(page: PageSnapshot): SummaryCard[] {
+  return [
+    {
+      title: 'Document overview',
+      body: page.headings.length > 0
+        ? `Detected ${page.headings.length} section headings: ${page.headings.slice(0, 3).join(', ')}.`
+        : 'No section hierarchy detected. The document may be unstructured.'
+    },
+    {
+      title: 'Excerpt',
+      body: page.excerpt.slice(0, 300)
+    },
+    {
+      title: 'Analysis unavailable',
+      body: 'Add your Anthropic API key in src/shared/config.ts to enable AI-powered clause analysis.'
+    }
+  ];
 }
 
 function buildFallbackResult(sourceLabel: string): ScanResult {
@@ -67,21 +141,13 @@ function buildFallbackResult(sourceLabel: string): ScanResult {
       url: '',
       hostname: 'local-session',
       selection: '',
-      excerpt: 'Readibly could not access the page directly, so this is a preview from the active tab context.',
+      excerpt: 'Readibly could not access the page directly.',
       headings: []
     },
-    highlights: [
+    cards: [
       {
-        title: 'Overview',
-        body: 'This is a placeholder scan summary. The final implementation can map contract clauses into structured language.'
-      },
-      {
-        title: 'Privacy',
-        body: 'Local-first processing keeps analysis inside the browser environment.'
-      },
-      {
-        title: 'Next step',
-        body: 'Wire the parser to clause detection, risk scoring, and comparison modes.'
+        title: 'Unable to scan',
+        body: 'Readibly could not access the active tab. Navigate to the page you want to analyze and try again.'
       }
     ]
   };

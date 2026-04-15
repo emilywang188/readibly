@@ -4,7 +4,7 @@ import '@fontsource/manrope/700.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
-import type { PanelTab, ScanResult, ScanSection } from '../shared/types';
+import type { PanelTab, ScanResult, SummaryCard } from '../shared/types';
 import { defaultReadiblySettings, settingsStorageKey, type ReadiblySettings } from '../shared/settings';
 import { sendRuntimeMessage } from '../shared/messages';
 import { ChatPage } from './components/ChatPage';
@@ -189,7 +189,7 @@ export function App() {
               {viewState !== 'summary' ? (
                 <OnboardingSection onScan={handleScan} statusText={statusText} scanning={viewState === 'scanning'} />
               ) : activeTab === 'chat' ? (
-                <ChatPage result={scanResult} apiKey={settings.apiKey} />
+                <ChatPage result={scanResult} />
               ) : activeTab === 'settings' ? (
                 <SettingsPage />
               ) : (

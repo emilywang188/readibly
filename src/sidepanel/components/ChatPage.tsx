@@ -1,10 +1,11 @@
-import { useMemo, useRef, useEffect, useState } from 'react';
+import Anthropic from '@anthropic-ai/sdk';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ANTHROPIC_API_KEY, CLAUDE_MODEL } from '../../shared/config';
 import type { ScanResult } from '../../shared/types';
 import { Surface } from './Surface';
 
 type ChatPageProps = {
   result: ScanResult | null;
-  apiKey: string;
 };
 
 type ChatRole = 'assistant' | 'user';
@@ -13,7 +14,6 @@ type ChatMessage = {
   id: string;
   role: ChatRole;
   text: string;
-  loading?: boolean;
 };
 
 const quickPrompts = [
@@ -22,58 +22,30 @@ const quickPrompts = [
   'What should I verify before agreeing?'
 ];
 
-const CHAT_SYSTEM = (result: ScanResult) =>
-  `You are Readibly, an AI legal assistant embedded in a Chrome extension. You have already scanned the following page:
+function buildSystemText(result: ScanResult): string {
+  const highlightText = result.cards.map((h) => `${h.title}: ${h.body}`).join('\n');
 
-Title: ${result.page.title}
-URL: ${result.page.url || '(not available)'}
-Page excerpt: ${result.page.excerpt}
-${result.cards ? `\nAI-generated summary cards:\n${result.cards.map((c) => `- ${c.title}: ${c.body}`).join('\n')}` : ''}
+  return `You are Readibly, a legal document assistant embedded in a browser extension. Answer questions about the following agreement concisely and clearly, flagging risks where relevant. Cite specific language from the document when possible. Keep answers to 2-4 sentences unless a longer answer is clearly needed.
 
-Help the user understand this document. Be concise (2–4 sentences per answer). Clearly flag risks. Never give formal legal advice — remind the user to consult a lawyer for decisions.`;
+Document: ${result.page.title}
+URL: ${result.page.url}
 
-async function callClaude(
-  apiKey: string,
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-  system: string
-): Promise<string> {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
-      system,
-      messages
-    })
-  });
+Document text:
+${result.page.excerpt.slice(0, 8000)}
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-    throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
-  }
-
-  const data = await res.json() as { content: Array<{ type: string; text: string }> };
-  return data.content
-    .filter((b) => b.type === 'text')
-    .map((b) => b.text)
-    .join('');
+Analysis highlights:
+${highlightText}`;
 }
 
-export function ChatPage({ result, apiKey }: ChatPageProps) {
+export function ChatPage({ result }: ChatPageProps) {
   const starter = useMemo<ChatMessage[]>(
     () => [
       {
         id: 'assistant-initial',
         role: 'assistant',
         text: result
-          ? `I've analyzed "${result.page.title}". Ask me about risks, obligations, payment terms, privacy clauses, or anything else in this document.`
-          : 'Scan a page first, then I can answer detailed questions about the agreement.'
+          ? `I scanned "${result.page.title}". Ask about risk, obligations, payment language, or privacy clauses.`
+          : 'Scan a page first, then I can answer follow-up questions about obligations and legal risk.'
       }
     ],
     [result]
@@ -81,7 +53,7 @@ export function ChatPage({ result, apiKey }: ChatPageProps) {
 
   const [messages, setMessages] = useState<ChatMessage[]>(starter);
   const [draft, setDraft] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -92,40 +64,72 @@ export function ChatPage({ result, apiKey }: ChatPageProps) {
 
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || busy) return;
+    if (!trimmed || isTyping) return;
 
-    const userMsg: ChatMessage = { id: `user-${crypto.randomUUID()}`, role: 'user', text: trimmed };
-    const loadingMsg: ChatMessage = { id: `loading-${crypto.randomUUID()}`, role: 'assistant', text: '…', loading: true };
+    const userMsg: ChatMessage = {
+      id: `user-${crypto.randomUUID()}`,
+      role: 'user',
+      text: trimmed
+    };
+    const assistantId = `assistant-${crypto.randomUUID()}`;
 
-    setMessages((prev) => [...prev, userMsg, loadingMsg]);
+    const history = messages.filter((m) => m.id !== 'assistant-initial');
+    setMessages((prev) => [...prev, userMsg, { id: assistantId, role: 'assistant', text: '' }]);
     setDraft('');
-    setBusy(true);
+    setIsTyping(true);
+
+    if (!result) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId ? { ...m, text: 'Please scan a page first before asking questions.' } : m
+        )
+      );
+      setIsTyping(false);
+      return;
+    }
+
+    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === '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') {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? { ...m, text: 'Add your Anthropic API key in src/shared/config.ts to enable chat.' }
+            : m
+        )
+      );
+      setIsTyping(false);
+      return;
+    }
 
     try {
-      if (!apiKey) {
-        throw new Error('No API key — add your Claude API key in Settings.');
-      }
-      if (!result) {
-        throw new Error('No page scanned yet. Click "Scan this page" first.');
-      }
+      const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY, dangerouslyAllowBrowser: true });
 
-      // Build conversation history (exclude loading messages)
-      const history = [...messages, userMsg]
-        .filter((m) => !m.loading)
-        .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.text }));
+      const apiMessages = [...history, userMsg].map((m) => ({
+        role: m.role,
+        content: m.text
+      }));
 
-      const reply = await callClaude(apiKey, history, CHAT_SYSTEM(result));
+      const stream = client.messages.stream({
+        model: CLAUDE_MODEL,
+        max_tokens: 1024,
+        system: [{ type: 'text', text: buildSystemText(result), cache_control: { type: 'ephemeral' } }],
+        messages: apiMessages
+      });
 
+      stream.on('text', (chunk: string) => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk } : m))
+        );
+      });
+
+      await stream.finalMessage();
+    } catch {
       setMessages((prev) =>
-        prev.map((m) => (m.loading ? { ...m, text: reply, loading: false } : m))
-      );
-    } catch (err) {
-      const errorText = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
-      setMessages((prev) =>
-        prev.map((m) => (m.loading ? { ...m, text: `⚠ ${errorText}`, loading: false } : m))
+        prev.map((m) =>
+          m.id === assistantId ? { ...m, text: 'Something went wrong. Check your API key in src/shared/config.ts.' } : m
+        )
       );
     } finally {
-      setBusy(false);
+      setIsTyping(false);
     }
   };
 
@@ -133,9 +137,10 @@ export function ChatPage({ result, apiKey }: ChatPageProps) {
     <section className="chat-view">
       <div className="summary-header">
         <div>
-          <h2>Ask about this page</h2>
+          <div className="eyebrow">Conversation</div>
+          <h2>Ask about this agreement</h2>
         </div>
-        <div className="summary-meta">{apiKey ? 'Claude AI' : 'No API key'}</div>
+        <div className="summary-meta">{isTyping ? 'Thinking…' : 'Claude'}</div>
       </div>
 
       <div className="chat-quick-row">
@@ -145,20 +150,17 @@ export function ChatPage({ result, apiKey }: ChatPageProps) {
             type="button"
             className="chat-quick-chip"
             onClick={() => void sendMessage(prompt)}
-            disabled={busy}
+            disabled={isTyping}
           >
             {prompt}
           </button>
         ))}
       </div>
 
-      <Surface tone="white" className="chat-thread" role="log" aria-live="polite" ref={threadRef}>
+      <Surface ref={threadRef} tone="white" className="chat-thread" role="log" aria-live="polite">
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`chat-bubble chat-bubble--${message.role} ${message.loading ? 'chat-bubble--loading' : ''}`.trim()}
-          >
-            {message.text}
+          <div key={message.id} className={`chat-bubble chat-bubble--${message.role}`}>
+            {message.text || (message.role === 'assistant' && isTyping ? '…' : '')}
           </div>
         ))}
       </Surface>
@@ -173,19 +175,19 @@ export function ChatPage({ result, apiKey }: ChatPageProps) {
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
               void sendMessage(draft);
             }
           }}
-          placeholder={apiKey ? 'Ask a follow-up question…' : 'Add your API key in Settings to chat'}
+          placeholder="Ask a follow-up question…"
           rows={2}
           className="chat-input"
-          disabled={busy}
+          disabled={isTyping}
         />
-        <button type="submit" className="chat-send-button" disabled={!draft.trim() || busy}>
-          {busy ? '…' : 'Send'}
+        <button type="submit" className="chat-send-button" disabled={!draft.trim() || isTyping}>
+          Send
         </button>
       </form>
     </section>
