@@ -5,7 +5,7 @@ import type {
   PageSnapshot,
   RuntimeMessage,
   ScanResult,
-  SummaryCard
+  ScanSection
 } from '../shared/types';
 import { ANTHROPIC_API_KEY, CLAUDE_MODEL } from '../shared/config';
 
@@ -69,7 +69,7 @@ async function handleScanRequest(): Promise<ScanResult> {
   return buildFallbackResult(activeTab.title ?? 'Untitled page');
 }
 
-async function analyzeWithClaude(page: PageSnapshot): Promise<SummaryCard[]> {
+async function analyzeWithClaude(page: PageSnapshot): Promise<ScanSection[]> {
   if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'PASTE_YOUR_KEY_HERE') {
     return buildFallbackHighlights(page);
   }
@@ -101,7 +101,7 @@ Return 4-6 highlights covering the most important topics from: data collection/s
 
     const msg = await stream.finalMessage();
     const text = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : '';
-    const parsed = JSON.parse(text) as { highlights: SummaryCard[] };
+    const parsed = JSON.parse(text) as { highlights: ScanSection[] };
 
     if (Array.isArray(parsed.highlights) && parsed.highlights.length > 0) {
       return parsed.highlights;
@@ -113,7 +113,7 @@ Return 4-6 highlights covering the most important topics from: data collection/s
   return buildFallbackHighlights(page);
 }
 
-function buildFallbackHighlights(page: PageSnapshot): SummaryCard[] {
+function buildFallbackHighlights(page: PageSnapshot): ScanSection[] {
   return [
     {
       title: 'Document overview',
@@ -127,7 +127,7 @@ function buildFallbackHighlights(page: PageSnapshot): SummaryCard[] {
     },
     {
       title: 'Analysis unavailable',
-      body: 'Add your Anthropic API key in src/shared/config.ts to enable AI-powered clause analysis.'
+      body: 'Add your Anthropic API key to .env to enable AI-powered clause analysis.'
     }
   ];
 }
