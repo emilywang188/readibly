@@ -128,11 +128,11 @@ export function App() {
       const result = await sendRuntimeMessage<ScanResult>({ type: 'READIBLY_SCAN_REQUEST' });
       setScanResult(result);
 
-      if (settings.apiKey) {
+      const effectiveApiKey = settings.apiKey || (import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined) || '';
+      if (effectiveApiKey) {
         setStatusText('Analyzing with Claude AI…');
         try {
-          const cards = await generateSummaryCards(settings.apiKey, result);
-          setGeneratedCards(cards);
+          const cards = await generateSummaryCards(effectiveApiKey, result);
         } catch (aiErr) {
           const msg = aiErr instanceof Error ? aiErr.message : 'AI analysis failed';
           setScanError(msg);
@@ -299,7 +299,7 @@ function SummarySection({
           {result
             ? aiMode
               ? 'Claude AI'
-              : (scanError ? 'Fallback mode' : 'Scan Error')
+              : (scanError ? 'Fallback mode' : 'No API Key')
             : 'Example'}
         </div>
       </div>
