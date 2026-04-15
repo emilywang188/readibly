@@ -1,10 +1,18 @@
-import type { PropsWithChildren } from 'react';
+import { forwardRef } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
 
-type SurfaceProps = PropsWithChildren<{
-  className?: string;
+type SurfaceProps = ComponentPropsWithoutRef<'div'> & {
   tone?: 'glass' | 'white' | 'soft';
-}>;
+};
 
-export function Surface({ className = '', tone = 'glass', children }: SurfaceProps) {
-  return <div className={`surface surface--${tone} ${className}`.trim()}>{children}</div>;
-}
+export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(
+  ({ className = '', tone = 'glass', children, ...rest }, ref) => {
+    return (
+      <div ref={ref} className={`surface surface--${tone} ${className}`.trim()} {...rest}>
+        {children}
+      </div>
+    );
+  }
+);
+
+Surface.displayName = 'Surface';

@@ -9,7 +9,7 @@ export interface PageSnapshot {
   headings: string[];
 }
 
-export interface ScanSection {
+export interface SummaryCard {
   title: string;
   body: string;
 }
@@ -18,7 +18,7 @@ export interface ScanResult {
   status: 'complete';
   page: PageSnapshot;
   generatedAt: number;
-  highlights: ScanSection[];
+  cards: SummaryCard[];
 }
 
 export interface ScanRequestMessage {
