@@ -14,6 +14,7 @@ export type ReadiblySettings = {
   showCitations: boolean;
   warningCategories: WarningCategory[];
   customWarningTerms: string[];
+  apiKey: string;
 };
 
 export const settingsStorageKey = 'readibly.settings.v2';
@@ -23,5 +24,6 @@ export const defaultReadiblySettings: ReadiblySettings = {
   showClauseHighlights: true,
   showCitations: true,
   warningCategories: ['Data Collection', 'Third-Party Sharing', 'Dispute Resolution'],
-  customWarningTerms: ['arbitration', 'auto-renew', 'liability']
+  customWarningTerms: ['arbitration', 'auto-renew', 'liability'],
+  apiKey: ''
 };

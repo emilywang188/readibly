@@ -1,6 +1,6 @@
 # Readibly
 
-Readibly is a production-style Chrome extension that uses the Side Panel API to turn dense legal agreements into clear, structured insights.
+Readibly is a premium Chrome side panel extension that summarizes legal agreements into clear, accessible language.
 
 ## Stack
 
