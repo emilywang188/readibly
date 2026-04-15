@@ -128,11 +128,12 @@ export function App() {
       const result = await sendRuntimeMessage<ScanResult>({ type: 'READIBLY_SCAN_REQUEST' });
       setScanResult(result);
 
-      const effectiveApiKey = settings.apiKey || (import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined) || '';
+      const effectiveApiKey = (import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined) || '';
       if (effectiveApiKey) {
         setStatusText('Analyzing with Claude AI…');
         try {
           const cards = await generateSummaryCards(effectiveApiKey, result);
+          setGeneratedCards(cards);
         } catch (aiErr) {
           const msg = aiErr instanceof Error ? aiErr.message : 'AI analysis failed';
           setScanError(msg);
@@ -186,12 +187,12 @@ export function App() {
 
           <main className="main-layout">
             <section className="main-content">
-              {viewState !== 'summary' ? (
+              {activeTab === 'settings' ? (
+                <SettingsPage />
+              ) : viewState !== 'summary' ? (
                 <OnboardingSection onScan={handleScan} statusText={statusText} scanning={viewState === 'scanning'} />
               ) : activeTab === 'chat' ? (
                 <ChatPage result={scanResult} />
-              ) : activeTab === 'settings' ? (
-                <SettingsPage />
               ) : (
                 <SummarySection
                   result={scanResult}

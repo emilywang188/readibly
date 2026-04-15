@@ -11,7 +11,6 @@ export function SettingsPage() {
   const [settings, setSettings] = useState<ReadiblySettings>(defaultReadiblySettings);
   const [status, setStatus] = useState('Synced locally');
   const [customTermsInput, setCustomTermsInput] = useState(defaultReadiblySettings.customWarningTerms.join(', '));
-  const [apiKeyVisible, setApiKeyVisible] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -54,52 +53,6 @@ export function SettingsPage() {
       </div>
 
       <Surface tone="white" className="settings-card">
-        <div className="settings-field">
-          <label className="settings-label" htmlFor="api-key">
-            Claude API Key
-          </label>
-          <p className="settings-help">
-            Required for AI-powered summaries and chat. Get yours at{' '}
-            <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: 'var(--primary-1)' }}>
-              console.anthropic.com
-            </a>
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '6px', alignItems: 'center' }}>
-            <input
-              id="api-key"
-              type={apiKeyVisible ? 'text' : 'password'}
-              className="settings-textarea"
-              style={{ minHeight: 'unset', resize: 'none', fontFamily: 'monospace', fontSize: '10px', padding: '8px 10px' }}
-              placeholder="sk-ant-..."
-              value={settings.apiKey}
-              onChange={(e) => setSettings((prev) => ({ ...prev, apiKey: e.target.value.trim() }))}
-            />
-            <button
-              type="button"
-              onClick={() => setApiKeyVisible((v) => !v)}
-              style={{
-                border: 0,
-                background: 'rgba(237,245,255,0.92)',
-                borderRadius: '9px',
-                padding: '8px 10px',
-                fontSize: '10px',
-                color: 'var(--ink-1)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {apiKeyVisible ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {settings.apiKey && (
-            <p className="settings-help" style={{ color: '#0d7232', marginTop: '4px' }}>
-              ✓ API key saved
-            </p>
-          )}
-        </div>
-
-        <div className="settings-divider" />
-
         <SettingToggle
           label="Auto-scan on panel open"
           description="Start scanning when the side panel opens."
