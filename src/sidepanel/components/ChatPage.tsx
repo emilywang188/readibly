@@ -140,7 +140,7 @@ export function ChatPage({ result }: ChatPageProps) {
           <div className="eyebrow">Conversation</div>
           <h2>Ask about this agreement</h2>
         </div>
-        <div className="summary-meta">{isTyping ? 'Thinking…' : 'Claude'}</div>
+        <div className="summary-meta">{isTyping ? 'Thinking…' : 'Claude AI'}</div>
       </div>
 
       <div className="chat-quick-row">
