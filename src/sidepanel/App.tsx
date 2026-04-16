@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import '@fontsource/manrope/600.css';
 import '@fontsource/manrope/700.css';
 import '@fontsource/inter/400.css';
@@ -305,6 +305,9 @@ function SummarySection({
   generatedCards: SummaryCard[] | null;
   scanError: string | null;
 }) {
+  const [pinnedSource, setPinnedSource] = useState<string | null>(null);
+  const hoverSourceRef = useRef<string | null>(null);
+
   const fallbackCards: SummaryCard[] = EXAMPLE_CARDS;
 
   // Prefer AI-generated cards, fall back to example cards
@@ -324,6 +327,33 @@ function SummarySection({
   };
 
   const aiMode = !!generatedCards;
+
+  const handleMouseEnter = (source: string) => {
+    hoverSourceRef.current = source;
+    if (!pinnedSource) void sendHighlightToTab(source);
+  };
+
+  const handleMouseLeave = () => {
+    hoverSourceRef.current = null;
+    if (!pinnedSource) void sendClearHighlightsToTab();
+  };
+
+  const handleClick = (source: string) => {
+    setPinnedSource((prev) => {
+      const next = prev === source ? null : source;
+      if (next) {
+        void sendHighlightToTab(next);
+      } else {
+        // Restore hover highlight if mouse is still over a card
+        if (hoverSourceRef.current) {
+          void sendHighlightToTab(hoverSourceRef.current);
+        } else {
+          void sendClearHighlightsToTab();
+        }
+      }
+      return next;
+    });
+  };
 
   return (
     <section className="summary-view">
@@ -355,13 +385,15 @@ function SummarySection({
       <div className="summary-grid">
         {displayCards.map((card) => {
           const canHighlight = !!result && !!card.source;
+          const isPinned = pinnedSource === card.source;
           return (
             <Surface
               key={card.title}
               tone="white"
-              className={`summary-card${canHighlight ? ' summary-card--highlightable' : ''}`}
-              onMouseEnter={canHighlight ? () => void sendHighlightToTab(card.source!) : undefined}
-              onMouseLeave={canHighlight ? () => void sendClearHighlightsToTab() : undefined}
+              className={`summary-card${canHighlight ? ' summary-card--highlightable' : ''}${isPinned ? ' summary-card--pinned' : ''}`}
+              onMouseEnter={canHighlight ? () => handleMouseEnter(card.source!) : undefined}
+              onMouseLeave={canHighlight ? handleMouseLeave : undefined}
+              onClick={canHighlight ? () => handleClick(card.source!) : undefined}
             >
               <div className="summary-card__label-row">
                 <div className="summary-card__label">{card.title}</div>
