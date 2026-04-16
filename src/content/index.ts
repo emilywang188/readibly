@@ -88,6 +88,35 @@ function buildHighlights(page: PageSnapshot): ScanResult['cards'] {
 // Highlight helpers
 // ---------------------------------------------------------------------------
 
+// Tags whose text content is never visible — mirrors innerText behaviour.
+const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'SVG', 'MATH']);
+
+// Block-level tags after which innerText inserts a newline.
+const BLOCK_TAGS = new Set([
+  'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'DD', 'DIV', 'DL', 'DT',
+  'FIELDSET', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2', 'H3',
+  'H4', 'H5', 'H6', 'HEADER', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE',
+  'SECTION', 'SUMMARY', 'TABLE', 'TD', 'TH', 'TR', 'UL'
+]);
+
+function isInSkippedElement(node: Node): boolean {
+  let el = node.parentElement;
+  while (el) {
+    if (SKIP_TAGS.has(el.tagName)) return true;
+    el = el.parentElement;
+  }
+  return false;
+}
+
+function nearestBlock(node: Node): Element {
+  let el = node.parentElement;
+  while (el && el !== document.body) {
+    if (BLOCK_TAGS.has(el.tagName)) return el;
+    el = el.parentElement;
+  }
+  return document.body;
+}
+
 function highlightText(searchText: string): void {
   clearHighlights();
   if (!searchText || searchText.length < 8) return;
@@ -95,17 +124,32 @@ function highlightText(searchText: string): void {
 
   const query = searchText.toLowerCase().replace(/\s+/g, ' ').trim();
 
-  // Build a single normalized string from all text nodes, tracking each
-  // character's origin (node + rawOffset) so we can create accurate Ranges
-  // even when the matched phrase spans multiple DOM text nodes.
+  // Build a virtual text that mirrors innerText as closely as possible:
+  // • skip script/style/hidden elements
+  // • insert a synthetic space at block-element boundaries
+  // Track each character's origin (node + rawOffset) for Range creation.
+  // Synthetic boundary spaces use a null sentinel in posMap.
   type Pos = { node: Node; rawOffset: number };
-  const posMap: Pos[] = [];
+  const posMap: Array<Pos | null> = [];
   let virtualText = '';
   let prevWasSpace = true;
+  let lastBlock: Element = document.body;
 
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let textNode: Node | null;
+
   while ((textNode = walker.nextNode())) {
+    if (isInSkippedElement(textNode)) continue;
+
+    // Insert a separator when crossing a block boundary (mirrors innerText \n).
+    const thisBlock = nearestBlock(textNode);
+    if (thisBlock !== lastBlock && !prevWasSpace) {
+      posMap.push(null);
+      virtualText += ' ';
+      prevWasSpace = true;
+    }
+    lastBlock = thisBlock;
+
     const raw = textNode.textContent ?? '';
     for (let i = 0; i < raw.length; i++) {
       const ch = raw[i];
