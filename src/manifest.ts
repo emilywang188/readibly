@@ -15,7 +15,7 @@ export default defineManifest({
   side_panel: {
     default_path: 'sidepanel.html'
   },
-  permissions: ['sidePanel', 'storage', 'tabs'],
+  permissions: ['sidePanel', 'storage', 'tabs', 'scripting'],
   host_permissions: ['<all_urls>', 'https://api.anthropic.com/*'],
   content_scripts: [
     {

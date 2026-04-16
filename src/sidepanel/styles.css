@@ -650,6 +650,16 @@ button {
   margin: 0;
 }
 
+.summary-card--highlightable {
+  cursor: default;
+  transition: box-shadow 0.15s ease, outline 0.15s ease;
+}
+
+.summary-card--highlightable:hover {
+  outline: 1.5px solid rgba(74, 126, 245, 0.35);
+  box-shadow: 0 0 0 3px rgba(74, 126, 245, 0.1), var(--shadow-2);
+}
+
 /* Error banner */
 .summary-error-banner {
   padding: 8px 11px;
