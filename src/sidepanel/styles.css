@@ -95,7 +95,7 @@ button {
 
 .brand-name {
   font-family: 'Manrope', system-ui, sans-serif;
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -175,7 +175,7 @@ button {
 }
 
 .tab-rail__button span {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -194,7 +194,7 @@ button {
 .status-pill {
   text-transform: uppercase;
   letter-spacing: 0.22em;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -211,14 +211,14 @@ button {
 
 .onboarding h1 {
   font-weight: 700;
-  font-size: 38px;
+  font-size: 34px;
   line-height: 0.96;
   letter-spacing: -0.05em;
 }
 
 /* Subheader (h2) — tightened for better readability */
 .summary-header h2 {
-  font-size: 22px;
+  font-size: 23px;
   line-height: 1.1;
   letter-spacing: -0.03em;
 }
@@ -226,7 +226,7 @@ button {
 .lead {
   margin: 12px 0 14px;
   color: var(--ink-1);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.65;
   max-width: 32ch;
 }
@@ -242,7 +242,7 @@ button {
   background: linear-gradient(135deg, var(--primary-0) 0%, var(--primary-1) 100%);
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   box-shadow: 0 8px 18px rgba(0, 6, 102, 0.34);
 }
@@ -296,7 +296,7 @@ button {
 .summary-placeholder h3 {
   margin: 0;
   font-family: 'Manrope', system-ui, sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -309,7 +309,7 @@ button {
 .footer-copy {
   margin: 3px 0 0;
   color: var(--ink-1);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -322,7 +322,7 @@ button {
   margin: 0;
   padding-top: 10px;
   text-align: center;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.3em;
   color: rgba(14, 27, 56, 0.35);
@@ -344,7 +344,7 @@ button {
   margin-top: 10px;
   text-align: center;
   color: rgba(14, 27, 56, 0.42);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .status-pill {
@@ -390,7 +390,7 @@ button {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.75);
   color: var(--primary-1);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   padding: 6px 9px;
   cursor: pointer;
@@ -417,7 +417,7 @@ button {
   max-width: 92%;
   border-radius: 11px;
   padding: 8px 10px;
-  font-size: 11.5px;
+  font-size: 12.5px;
   line-height: 1.55;
 }
 
@@ -452,7 +452,7 @@ button {
   padding: 9px 10px;
   background: rgba(255, 255, 255, 0.84);
   color: var(--ink-0);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
   outline: none;
   box-shadow: var(--shadow-2);
@@ -462,7 +462,7 @@ button {
   border: 0;
   border-radius: 10px;
   padding: 0 11px;
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-weight: 700;
@@ -493,7 +493,7 @@ button {
 
 .settings-label {
   font-family: 'Manrope', system-ui, sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--primary-1);
@@ -502,7 +502,7 @@ button {
 .settings-help {
   margin: 3px 0 0;
   color: var(--ink-2);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -559,7 +559,7 @@ button {
   border-radius: 8px;
   background: rgba(237, 245, 255, 0.75);
   color: var(--ink-0);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .settings-category-option input {
@@ -574,7 +574,7 @@ button {
   padding: 8px 10px;
   background: rgba(237, 245, 255, 0.92);
   color: var(--ink-0);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
   min-height: 56px;
 }
@@ -594,7 +594,7 @@ button {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.75);
   color: var(--ink-2);
-  font-size: 9.5px;
+  font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
   box-shadow: 0 4px 12px rgba(17, 30, 63, 0.06);
@@ -616,7 +616,7 @@ button {
 .summary-card__label {
   color: rgba(14, 27, 56, 0.48);
   margin-bottom: 4px;
-  font-size: 9.5px;
+  font-size: 10.5px;
 }
 
 .summary-card__label-row {
@@ -633,7 +633,7 @@ button {
 
 .summary-card__flag {
   flex: 0 0 auto;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -644,7 +644,7 @@ button {
 }
 
 .summary-card p {
-  font-size: 11.5px;
+  font-size: 12.5px;
   line-height: 1.55;
   color: var(--ink-1);
   margin: 0;
@@ -666,7 +666,7 @@ button {
   border-radius: 9px;
   background: rgba(198, 26, 43, 0.08);
   color: #c61a2b;
-  font-size: 10.5px;
+  font-size: 11.5px;
   line-height: 1.4;
 }
 
@@ -676,10 +676,10 @@ button {
   }
 
   .onboarding h1 {
-    font-size: 34px;
+    font-size: 35px;
   }
 
   .lead {
-    font-size: 11.5px;
+    font-size: 12.5px;
   }
 }
