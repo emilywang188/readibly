@@ -4,7 +4,7 @@ import '@fontsource/manrope/700.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
-import type { PanelTab, ScanResult, SummaryCard } from '../shared/types';
+import type { ClearHighlightsMessage, HighlightTextMessage, PanelTab, ScanResult, SummaryCard } from '../shared/types';
 import { defaultReadiblySettings, settingsStorageKey, type ReadiblySettings } from '../shared/settings';
 import { sendRuntimeMessage } from '../shared/messages';
 import { ChatPage } from './components/ChatPage';
@@ -18,7 +18,7 @@ import { TabRail } from './components/TabRail';
 type ViewState = 'onboarding' | 'scanning' | 'summary';
 
 // One-shot example cards used as style/format reference for Claude
-const EXAMPLE_CARDS = [
+const EXAMPLE_CARDS: SummaryCard[] = [
   { title: 'Data Collection', body: 'The app gathers personal details, device data, and how you use the service, meaning your activity can be tracked and analyzed over time.' },
   { title: 'Location Access', body: 'The app may access your location, which could be used not just for core features but also for tracking and personalization.' },
   { title: 'Third-Party Sharing', body: 'Your data may be shared with outside companies like advertisers or analytics providers, extending its use beyond the app itself.' },
@@ -26,19 +26,54 @@ const EXAMPLE_CARDS = [
   { title: 'Dispute Resolution', body: 'You may give up your right to sue in court or join class action lawsuits, limiting how you can challenge the company legally.' }
 ];
 
+// Example cards with source quotes — used only in the system prompt as format reference.
+const EXAMPLE_CARDS_WITH_SOURCE = EXAMPLE_CARDS.map((c, i) => ({
+  ...c,
+  source: [
+    'we collect information about how you use our services',
+    'we may collect precise location information',
+    'we may share your information with our partners',
+    'you grant us a worldwide, royalty-free license to use your content',
+    'any disputes will be resolved through binding arbitration'
+  ][i]
+}));
+
 const SUMMARY_SYSTEM = `You are Readibly, a legal document analyzer embedded in a Chrome extension. Analyze web page content and extract key legal, privacy, or contractual clauses — explained in plain English.
 
-Return ONLY a valid JSON array. No markdown fences, no preamble. Each element must be: {"title": string, "body": string}.
+Return ONLY a valid JSON array. No markdown fences, no preamble. Each element must be: {"title": string, "body": string, "source": string}.
 
 Here is the exact style and format to follow (one-shot example):
-${JSON.stringify(EXAMPLE_CARDS, null, 2)}
+${JSON.stringify(EXAMPLE_CARDS_WITH_SOURCE, null, 2)}
 
 Rules:
 - Generate 3–7 cards covering only categories genuinely present in the content.
 - Body: 1–2 plain-English sentences. No legal jargon. Focus on what it means for the user.
 - Short, specific title labels (e.g. "Auto-Renewal", "Data Retention", "Payment Terms").
-- If the page is not a legal/privacy document, return a single card explaining what the page is about.
+- Source: a short verbatim phrase (30–80 chars) copied exactly from the document that this card is based on.
+- If the page is not a legal/privacy document, return a single card explaining what the page is about (source may be empty).
 - Respond with the JSON array only — nothing else.`;
+
+async function sendHighlightToTab(text: string): Promise<void> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      void chrome.tabs.sendMessage(tab.id, { type: 'READIBLY_HIGHLIGHT_TEXT', text } satisfies HighlightTextMessage);
+    }
+  } catch {
+    // Silently ignore — page may not have a content script.
+  }
+}
+
+async function sendClearHighlightsToTab(): Promise<void> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      void chrome.tabs.sendMessage(tab.id, { type: 'READIBLY_CLEAR_HIGHLIGHTS' } satisfies ClearHighlightsMessage);
+    }
+  } catch {
+    // Silently ignore.
+  }
+}
 
 async function generateSummaryCards(apiKey: string, result: ScanResult): Promise<SummaryCard[]> {
   const pageContent = [
@@ -318,17 +353,26 @@ function SummarySection({
       )}
 
       <div className="summary-grid">
-        {displayCards.map((card) => (
-          <Surface key={card.title} tone="white" className="summary-card">
-            <div className="summary-card__label-row">
-              <div className="summary-card__label">{card.title}</div>
-              {isCardFlagged(card.title, card.body) ? (
-                <span className="summary-card__flag">🚩 Flag</span>
-              ) : null}
-            </div>
-            <p>{card.body}</p>
-          </Surface>
-        ))}
+        {displayCards.map((card) => {
+          const canHighlight = !!result && !!card.source;
+          return (
+            <Surface
+              key={card.title}
+              tone="white"
+              className={`summary-card${canHighlight ? ' summary-card--highlightable' : ''}`}
+              onMouseEnter={canHighlight ? () => void sendHighlightToTab(card.source!) : undefined}
+              onMouseLeave={canHighlight ? () => void sendClearHighlightsToTab() : undefined}
+            >
+              <div className="summary-card__label-row">
+                <div className="summary-card__label">{card.title}</div>
+                {isCardFlagged(card.title, card.body) ? (
+                  <span className="summary-card__flag">🚩 Flag</span>
+                ) : null}
+              </div>
+              <p>{card.body}</p>
+            </Surface>
+          );
+        })}
       </div>
     </section>
   );

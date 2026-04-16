@@ -1,21 +1,50 @@
-import type { CollectPageContextMessage, PageSnapshot, ScanResult } from '../shared/types';
+import type {
+  ClearHighlightsMessage,
+  CollectPageContextMessage,
+  HighlightTextMessage,
+  PageSnapshot,
+  ScanResult
+} from '../shared/types';
+
+// Inject highlight styles for the CSS Custom Highlight API once.
+const _style = document.createElement('style');
+_style.textContent = `::highlight(readibly-highlight) { background-color: rgba(251, 210, 42, 0.45); }`;
+(document.head ?? document.documentElement).appendChild(_style);
 
 chrome.runtime.onMessage.addListener(
-  (message: CollectPageContextMessage, _sender, sendResponse): boolean => {
-    if (message.type !== 'READIBLY_COLLECT_PAGE_CONTEXT') {
-      return false;
+  (
+    message: CollectPageContextMessage | HighlightTextMessage | ClearHighlightsMessage,
+    _sender,
+    sendResponse
+  ): boolean => {
+    switch (message.type) {
+      case 'READIBLY_COLLECT_PAGE_CONTEXT': {
+        const page = collectPageSnapshot();
+        const result: ScanResult = {
+          status: 'complete',
+          generatedAt: Date.now(),
+          page,
+          cards: buildHighlights(page)
+        };
+        sendResponse(result);
+        return false;
+      }
+
+      case 'READIBLY_HIGHLIGHT_TEXT': {
+        highlightText((message as HighlightTextMessage).text);
+        sendResponse({ ok: true });
+        return false;
+      }
+
+      case 'READIBLY_CLEAR_HIGHLIGHTS': {
+        clearHighlights();
+        sendResponse({ ok: true });
+        return false;
+      }
+
+      default:
+        return false;
     }
-
-    const page = collectPageSnapshot();
-    const result: ScanResult = {
-      status: 'complete',
-      generatedAt: Date.now(),
-      page,
-      cards: buildHighlights(page)
-    };
-
-    sendResponse(result);
-    return false;
   }
 );
 
@@ -53,4 +82,51 @@ function buildHighlights(page: PageSnapshot): ScanResult['cards'] {
       body: 'Analysis is scoped to the browser session and can be expanded into clause-level guidance later.'
     }
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Highlight helpers
+// ---------------------------------------------------------------------------
+
+function highlightText(searchText: string): void {
+  clearHighlights();
+  if (!searchText || searchText.length < 8) return;
+
+  const lowerSearch = searchText.toLowerCase().replace(/\s+/g, ' ').trim();
+  let firstNode: Node | null = null;
+
+  if (typeof CSS !== 'undefined' && 'highlights' in CSS) {
+    // CSS Custom Highlight API (Chrome 105+) — no DOM mutation.
+    const highlight = new Highlight();
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const raw = node.textContent ?? '';
+      const text = raw.toLowerCase().replace(/\s+/g, ' ');
+      let start = 0;
+      let idx: number;
+      while ((idx = text.indexOf(lowerSearch, start)) !== -1) {
+        const range = new Range();
+        range.setStart(node, idx);
+        range.setEnd(node, idx + searchText.length);
+        highlight.add(range);
+        if (!firstNode) firstNode = node;
+        start = idx + 1;
+      }
+    }
+
+    if (highlight.size > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (CSS as any).highlights.set('readibly-highlight', highlight);
+      (firstNode as Text | null)?.parentElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+}
+
+function clearHighlights(): void {
+  if (typeof CSS !== 'undefined' && 'highlights' in CSS) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (CSS as any).highlights.delete('readibly-highlight');
+  }
 }
