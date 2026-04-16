@@ -91,36 +91,65 @@ function buildHighlights(page: PageSnapshot): ScanResult['cards'] {
 function highlightText(searchText: string): void {
   clearHighlights();
   if (!searchText || searchText.length < 8) return;
+  if (typeof CSS === 'undefined' || !('highlights' in CSS)) return;
 
-  const lowerSearch = searchText.toLowerCase().replace(/\s+/g, ' ').trim();
-  let firstNode: Node | null = null;
+  const query = searchText.toLowerCase().replace(/\s+/g, ' ').trim();
 
-  if (typeof CSS !== 'undefined' && 'highlights' in CSS) {
-    // CSS Custom Highlight API (Chrome 105+) — no DOM mutation.
-    const highlight = new Highlight();
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  // Build a single normalized string from all text nodes, tracking each
+  // character's origin (node + rawOffset) so we can create accurate Ranges
+  // even when the matched phrase spans multiple DOM text nodes.
+  type Pos = { node: Node; rawOffset: number };
+  const posMap: Pos[] = [];
+  let virtualText = '';
+  let prevWasSpace = true;
 
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      const raw = node.textContent ?? '';
-      const text = raw.toLowerCase().replace(/\s+/g, ' ');
-      let start = 0;
-      let idx: number;
-      while ((idx = text.indexOf(lowerSearch, start)) !== -1) {
-        const range = new Range();
-        range.setStart(node, idx);
-        range.setEnd(node, idx + searchText.length);
-        highlight.add(range);
-        if (!firstNode) firstNode = node;
-        start = idx + 1;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let textNode: Node | null;
+  while ((textNode = walker.nextNode())) {
+    const raw = textNode.textContent ?? '';
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+      if (/\s/.test(ch)) {
+        if (!prevWasSpace) {
+          posMap.push({ node: textNode, rawOffset: i });
+          virtualText += ' ';
+          prevWasSpace = true;
+        }
+      } else {
+        posMap.push({ node: textNode, rawOffset: i });
+        virtualText += ch.toLowerCase();
+        prevWasSpace = false;
       }
     }
+  }
 
-    if (highlight.size > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (CSS as any).highlights.set('readibly-highlight', highlight);
-      (firstNode as Text | null)?.parentElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // CSS Custom Highlight API (Chrome 105+) — no DOM mutation.
+  const highlight = new Highlight();
+  let firstRange: Range | null = null;
+  let searchFrom = 0;
+
+  while (searchFrom < virtualText.length) {
+    const start = virtualText.indexOf(query, searchFrom);
+    if (start === -1) break;
+    const end = start + query.length;
+    if (end > posMap.length) break;
+
+    const startPos = posMap[start];
+    const endPos = posMap[end - 1];
+    if (startPos && endPos) {
+      const range = new Range();
+      range.setStart(startPos.node, startPos.rawOffset);
+      range.setEnd(endPos.node, endPos.rawOffset + 1);
+      highlight.add(range);
+      if (!firstRange) firstRange = range;
     }
+    searchFrom = start + 1;
+  }
+
+  if (highlight.size > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (CSS as any).highlights.set('readibly-highlight', highlight);
+    firstRange?.startContainer.parentElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
 

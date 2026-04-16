@@ -651,13 +651,18 @@ button {
 }
 
 .summary-card--highlightable {
-  cursor: default;
+  cursor: pointer;
   transition: box-shadow 0.15s ease, outline 0.15s ease;
 }
 
 .summary-card--highlightable:hover {
   outline: 1.5px solid rgba(74, 126, 245, 0.35);
   box-shadow: 0 0 0 3px rgba(74, 126, 245, 0.1), var(--shadow-2);
+}
+
+.summary-card--pinned {
+  outline: 1.5px solid rgba(74, 126, 245, 0.7);
+  box-shadow: 0 0 0 3px rgba(74, 126, 245, 0.18), var(--shadow-2);
 }
 
 /* Error banner */
