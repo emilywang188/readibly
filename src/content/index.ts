@@ -6,11 +6,6 @@ import type {
   ScanResult
 } from '../shared/types';
 
-// Inject highlight styles for the CSS Custom Highlight API once.
-const _style = document.createElement('style');
-_style.textContent = `::highlight(readibly-highlight) { background-color: rgba(251, 210, 42, 0.45); }`;
-(document.head ?? document.documentElement).appendChild(_style);
-
 chrome.runtime.onMessage.addListener(
   (
     message: CollectPageContextMessage | HighlightTextMessage | ClearHighlightsMessage,
