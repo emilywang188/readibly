@@ -377,6 +377,10 @@ button {
   padding-right: 2px;
 }
 
+.settings-view {
+  padding-bottom: 18px;
+}
+
 .chat-quick-row {
   display: flex;
   gap: 5px;
