@@ -438,6 +438,7 @@ button {
   align-self: flex-start;
   background: rgba(237, 245, 255, 0.95);
   color: var(--ink-1);
+  white-space: pre-wrap;
 }
 
 .chat-bubble--user {
@@ -669,7 +670,6 @@ button {
 }
 
 .summary-card--highlightable:hover {
-  outline: 1.5px solid rgba(74, 126, 245, 0.35);
   box-shadow: 0 0 0 3px rgba(74, 126, 245, 0.1), var(--shadow-2);
 }
 
