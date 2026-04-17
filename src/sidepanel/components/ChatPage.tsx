@@ -27,7 +27,7 @@ const quickPrompts = [
 function buildSystemText(result: ScanResult): string {
   const highlightText = result.cards.map((h) => `${h.title}: ${h.body}`).join('\n');
 
-  return `You are Readibly, a legal document assistant embedded in a browser extension. Answer questions about the document below using 2–4 short bullet points. Paraphrase everything in plain English — do not reproduce or quote document text directly.
+  return `You are Readibly, a legal document assistant embedded in a browser extension. Answer questions about the document below using 2–4 short bullet points starting with the • character. Paraphrase everything in plain English — do not reproduce or quote document text directly.
 
 Only answer questions directly related to this document or to legal/privacy matters relevant to it. If the question is unrelated, respond only with: "I'm sorry, I can't answer that. It is beyond the scope of my functionality."
 
