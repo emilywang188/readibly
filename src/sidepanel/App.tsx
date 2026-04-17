@@ -53,21 +53,23 @@ Rules:
 - If the page is not a legal/privacy document, return a single card explaining what the page is about (source may be empty).
 - Respond with the JSON array only — nothing else.`;
 
-// Tracks tabs where highlight CSS has already been injected this session.
-const cssInjectedTabs = new Set<number>();
+// Tracks the last URL per tab where highlight CSS was injected.
+// Keyed by tabId so navigation (URL change) triggers re-injection.
+const cssInjectedForUrl = new Map<number, string>();
 
 async function sendHighlightToTab(text: string): Promise<void> {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) return;
+    const url = tab.url ?? '';
     // chrome.scripting.insertCSS bypasses the page's Content-Security-Policy,
     // unlike a <style> element injected by the content script which CSP can block.
-    if (!cssInjectedTabs.has(tab.id)) {
+    if (cssInjectedForUrl.get(tab.id) !== url) {
       await chrome.scripting.insertCSS({
         target: { tabId: tab.id },
         css: '::highlight(readibly-highlight) { background-color: rgba(251, 210, 42, 0.45); color: inherit; }'
       });
-      cssInjectedTabs.add(tab.id);
+      cssInjectedForUrl.set(tab.id, url);
     }
     await chrome.tabs.sendMessage(tab.id, { type: 'READIBLY_HIGHLIGHT_TEXT', text } satisfies HighlightTextMessage);
   } catch {

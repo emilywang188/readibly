@@ -1,8 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { ANTHROPIC_API_KEY, CLAUDE_MODEL } from '../../shared/config';
 import type { ScanResult } from '../../shared/types';
 import { Surface } from './Surface';
+
+// Renders **bold** and *italic* markdown inline — no library needed.
+function renderMarkdown(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>;
+    return part;
+  });
+}
 
 type ChatPageProps = {
   result: ScanResult | null;
@@ -182,7 +193,9 @@ export function ChatPage({ result, onHighlight, onClearHighlight }: ChatPageProp
       <Surface ref={threadRef} tone="white" className="chat-thread" role="log" aria-live="polite">
         {messages.map((message) => (
           <div key={message.id} className={`chat-bubble chat-bubble--${message.role}`}>
-            {message.text || (message.role === 'assistant' && isTyping ? '…' : '')}
+            {message.role === 'assistant'
+              ? renderMarkdown(message.text || (isTyping ? '…' : ''))
+              : message.text}
           </div>
         ))}
       </Surface>
