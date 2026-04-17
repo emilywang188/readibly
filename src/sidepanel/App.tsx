@@ -314,7 +314,7 @@ function OnboardingSection({
         <FeatureCard
           icon={<ShieldIcon className="feature-card__svg" />}
           title="Private & Secure"
-          description="Your API key is stored locally. Page content is only sent to Anthropic's API — never to third parties."
+          description="Page content is only sent to Anthropic's API — never to third parties."
         />
         <FeatureCard
           icon={<LockIcon className="feature-card__svg" />}
