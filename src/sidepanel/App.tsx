@@ -86,6 +86,35 @@ async function sendClearHighlightsToTab(): Promise<void> {
   }
 }
 
+// Expands a short source phrase to a ~3-sentence chunk from the excerpt for richer highlighting.
+function expandToSentenceChunk(source: string, excerpt: string): string {
+  if (!source || !excerpt) return source;
+  const idx = excerpt.toLowerCase().indexOf(source.toLowerCase());
+  if (idx === -1) return source;
+  const sourceEnd = idx + source.length;
+
+  // Walk back to start of the sentence containing the source.
+  let start = 0;
+  for (let i = idx - 1; i >= 0; i--) {
+    if ('.?!'.includes(excerpt[i])) {
+      start = i + 1;
+      while (start < idx && /\s/.test(excerpt[start])) start++;
+      break;
+    }
+  }
+
+  // Walk forward to capture 2 more sentence endings (total ~3 sentences).
+  let end = excerpt.length;
+  let endings = 0;
+  for (let i = sourceEnd; i < excerpt.length; i++) {
+    if ('.?!'.includes(excerpt[i])) {
+      if (++endings >= 2) { end = i + 1; break; }
+    }
+  }
+
+  return excerpt.slice(start, end).trim();
+}
+
 async function generateSummaryCards(apiKey: string, result: ScanResult): Promise<SummaryCard[]> {
   const pageContent = [
     `Title: ${result.page.title}`,
@@ -238,7 +267,7 @@ export function App() {
               ) : viewState !== 'summary' ? (
                 <OnboardingSection onScan={handleScan} statusText={statusText} scanning={viewState === 'scanning'} />
               ) : activeTab === 'chat' ? (
-                <ChatPage result={scanResult} />
+                <ChatPage result={scanResult} onHighlight={sendHighlightToTab} onClearHighlight={sendClearHighlightsToTab} />
               ) : (
                 <SummarySection
                   result={scanResult}
@@ -339,9 +368,11 @@ function SummarySection({
 
   const aiMode = !!generatedCards;
 
+  const excerpt = result?.page.excerpt ?? '';
+
   const handleMouseEnter = (source: string) => {
     hoverSourceRef.current = source;
-    if (!pinnedSource) void sendHighlightToTab(source);
+    if (!pinnedSource) void sendHighlightToTab(expandToSentenceChunk(source, excerpt));
   };
 
   const handleMouseLeave = () => {
@@ -353,11 +384,11 @@ function SummarySection({
     setPinnedSource((prev) => {
       const next = prev === source ? null : source;
       if (next) {
-        void sendHighlightToTab(next);
+        void sendHighlightToTab(expandToSentenceChunk(next, excerpt));
       } else {
         // Restore hover highlight if mouse is still over a card
         if (hoverSourceRef.current) {
-          void sendHighlightToTab(hoverSourceRef.current);
+          void sendHighlightToTab(expandToSentenceChunk(hoverSourceRef.current, excerpt));
         } else {
           void sendClearHighlightsToTab();
         }

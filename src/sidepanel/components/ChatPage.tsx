@@ -6,6 +6,8 @@ import { Surface } from './Surface';
 
 type ChatPageProps = {
   result: ScanResult | null;
+  onHighlight?: (text: string) => Promise<void>;
+  onClearHighlight?: () => Promise<void>;
 };
 
 type ChatRole = 'assistant' | 'user';
@@ -25,7 +27,11 @@ const quickPrompts = [
 function buildSystemText(result: ScanResult): string {
   const highlightText = result.cards.map((h) => `${h.title}: ${h.body}`).join('\n');
 
-  return `You are Readibly, a legal document assistant embedded in a browser extension. Answer questions about the following agreement concisely and clearly, flagging risks where relevant. Cite specific language from the document when possible. Keep answers to 2-4 sentences unless a longer answer is clearly needed.
+  return `You are Readibly, a legal document assistant embedded in a browser extension. Answer questions about the document below clearly and concisely in 2-3 plain sentences. Do not reproduce or quote document text directly in your answer — just explain in your own words.
+
+Only answer questions that are directly related to this specific document or to general legal/privacy matters relevant to it. If the user asks anything unrelated to this document or clearly outside the scope of legal agreements, privacy policies, or terms of service, respond only with: "I'm sorry, I can't answer that. It is beyond the scope of my functionality."
+
+After your answer (on a new line), include: HIGHLIGHT: <a short verbatim phrase copied exactly from the document text that is most relevant to your answer>
 
 Document: ${result.page.title}
 URL: ${result.page.url}
@@ -37,7 +43,7 @@ Analysis highlights:
 ${highlightText}`;
 }
 
-export function ChatPage({ result }: ChatPageProps) {
+export function ChatPage({ result, onHighlight, onClearHighlight }: ChatPageProps) {
   const starter = useMemo<ChatMessage[]>(
     () => [
       {
@@ -77,6 +83,7 @@ export function ChatPage({ result }: ChatPageProps) {
     setMessages((prev) => [...prev, userMsg, { id: assistantId, role: 'assistant', text: '' }]);
     setDraft('');
     setIsTyping(true);
+    void onClearHighlight?.();
 
     if (!result) {
       setMessages((prev) =>
@@ -115,13 +122,28 @@ export function ChatPage({ result }: ChatPageProps) {
         messages: apiMessages
       });
 
+      let responseText = '';
       stream.on('text', (chunk: string) => {
+        responseText += chunk;
+        // Strip the HIGHLIGHT: marker line from the displayed text during streaming.
+        const displayText = responseText.replace(/\n?HIGHLIGHT:[\s\S]*$/, '').trim();
         setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk } : m))
+          prev.map((m) => (m.id === assistantId ? { ...m, text: displayText } : m))
         );
       });
 
       await stream.finalMessage();
+
+      // Extract HIGHLIGHT phrase and finalize clean display text.
+      const trimmedResponse = responseText.trim();
+      const highlightMatch = /\nHIGHLIGHT:\s*(.+)$/.exec(trimmedResponse);
+      const cleanText = trimmedResponse.replace(/\n?HIGHLIGHT:[\s\S]*$/, '').trim();
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, text: cleanText } : m))
+      );
+      if (highlightMatch?.[1]) {
+        void onHighlight?.(highlightMatch[1].trim());
+      }
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
