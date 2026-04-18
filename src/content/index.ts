@@ -173,30 +173,8 @@ function highlightText(searchText: string): void {
     const end = start + query.length;
     if (end > posMap.length) break;
 
-    // Expand the matched phrase to ~3 surrounding sentences.
-    let chunkStart = start;
-    for (let i = start - 1; i >= 0; i--) {
-      if ('.?!'.includes(virtualText[i])) {
-        chunkStart = i + 1;
-        while (chunkStart < start && virtualText[chunkStart] === ' ') chunkStart++;
-        break;
-      }
-    }
-    let chunkEnd = end;
-    let sentenceCount = 0;
-    for (let i = end; i < virtualText.length && sentenceCount < 2; i++) {
-      if ('.?!'.includes(virtualText[i])) { sentenceCount++; chunkEnd = i + 1; }
-    }
-
-    // Map expanded positions to DOM nodes, falling back to the exact match.
-    let si = chunkStart;
-    while (si < start && posMap[si] === null) si++;
-    let ei = Math.min(chunkEnd - 1, posMap.length - 1);
-    while (ei > end - 1 && posMap[ei] === null) ei--;
-
-    const startPos = posMap[si] ?? posMap[start];
-    const endPos = posMap[ei] ?? posMap[end - 1];
-
+    const startPos = posMap[start];
+    const endPos = posMap[end - 1];
     if (startPos && endPos) {
       const range = new Range();
       range.setStart(startPos.node, startPos.rawOffset);
