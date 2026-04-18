@@ -23,7 +23,7 @@ const EXAMPLE_CARDS: SummaryCard[] = [
   { title: 'Location Access', body: 'The app may access your location, which could be used not just for core features but also for tracking and personalization.' },
   { title: 'Third-Party Sharing', body: 'Your data may be shared with outside companies like advertisers or analytics providers, extending its use beyond the app itself.' },
   { title: 'Ownership of Your Content', body: 'Anything you upload can be used, modified, or distributed by the company, even if you still technically own it.' },
-  { title: 'Dispute Resolution', body: 'You may give up your right to sue in court or join class action lawsuits, limiting how you can challenge the company legally.' }
+  { title: 'Auto-Renewal', body: 'Your subscription renews automatically at the end of each billing period and you will be charged unless you cancel before the renewal date.' }
 ];
 
 // Example cards with source quotes — used only in the system prompt as format reference.
@@ -34,7 +34,7 @@ const EXAMPLE_CARDS_WITH_SOURCE = EXAMPLE_CARDS.map((c, i) => ({
     'we may collect precise location information',
     'we may share your information with our partners',
     'you grant us a worldwide, royalty-free license to use your content',
-    'any disputes will be resolved through binding arbitration'
+    'your subscription will automatically renew unless you cancel'
   ][i]
 }));
 
