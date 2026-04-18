@@ -2,8 +2,8 @@ export const warningCategoryOptions = [
   'Data Collection',
   'Location Access',
   'Third-Party Sharing',
-  'Ownership of Your Content',
-  'Dispute Resolution'
+  'Ownership of Content',
+  'Auto-Renewal'
 ] as const;
 
 export type WarningCategory = (typeof warningCategoryOptions)[number];
@@ -22,6 +22,6 @@ export const defaultReadiblySettings: ReadiblySettings = {
   autoScanOnOpen: false,
   showClauseHighlights: true,
   showCitations: true,
-  warningCategories: ['Data Collection', 'Third-Party Sharing', 'Dispute Resolution'],
+  warningCategories: ['Data Collection', 'Third-Party Sharing', 'Auto-Renewal'],
   customWarningTerms: ['arbitration', 'auto-renew', 'liability']
 };
