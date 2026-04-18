@@ -342,6 +342,9 @@ function SummarySection({
 
   const aiMode = !!generatedCards;
 
+  // Clear page highlight whenever this view unmounts (tab switch or rescan).
+  useEffect(() => () => { void sendClearHighlightsToTab(); }, []);
+
   const handleMouseEnter = (source: string) => {
     hoverSourceRef.current = source;
     if (!pinnedSource) void sendHighlightToTab(source);
@@ -353,20 +356,19 @@ function SummarySection({
   };
 
   const handleClick = (source: string) => {
-    setPinnedSource((prev) => {
-      const next = prev === source ? null : source;
-      if (next) {
-        void sendHighlightToTab(next);
+    if (pinnedSource === source) {
+      // Toggle off — restore hover highlight or clear entirely.
+      setPinnedSource(null);
+      if (hoverSourceRef.current) {
+        void sendHighlightToTab(hoverSourceRef.current);
       } else {
-        // Restore hover highlight if mouse is still over a card
-        if (hoverSourceRef.current) {
-          void sendHighlightToTab(hoverSourceRef.current);
-        } else {
-          void sendClearHighlightsToTab();
-        }
+        void sendClearHighlightsToTab();
       }
-      return next;
-    });
+    } else {
+      // Switch pin to this card.
+      setPinnedSource(source);
+      void sendHighlightToTab(source);
+    }
   };
 
   return (
