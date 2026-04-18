@@ -17,8 +17,6 @@ function renderMarkdown(text: string): ReactNode[] {
 
 type ChatPageProps = {
   result: ScanResult | null;
-  onHighlight?: (text: string) => Promise<void>;
-  onClearHighlight?: () => Promise<void>;
 };
 
 type ChatRole = 'assistant' | 'user';
@@ -42,8 +40,6 @@ function buildSystemText(result: ScanResult): string {
 
 Only answer questions directly related to this document or to legal/privacy matters relevant to it. If the question is unrelated, respond only with: "I'm sorry, I can't answer that. It is beyond the scope of my functionality."
 
-After your bullets (on its own line), include: HIGHLIGHT: <a short verbatim phrase copied exactly from the document most relevant to your answer>
-
 Document: ${result.page.title}
 URL: ${result.page.url}
 
@@ -54,7 +50,7 @@ Analysis highlights:
 ${highlightText}`;
 }
 
-export function ChatPage({ result, onHighlight, onClearHighlight }: ChatPageProps) {
+export function ChatPage({ result }: ChatPageProps) {
   const starter = useMemo<ChatMessage[]>(
     () => [
       {
@@ -94,7 +90,6 @@ export function ChatPage({ result, onHighlight, onClearHighlight }: ChatPageProp
     setMessages((prev) => [...prev, userMsg, { id: assistantId, role: 'assistant', text: '' }]);
     setDraft('');
     setIsTyping(true);
-    void onClearHighlight?.();
 
     if (!result) {
       setMessages((prev) =>
@@ -133,28 +128,13 @@ export function ChatPage({ result, onHighlight, onClearHighlight }: ChatPageProp
         messages: apiMessages
       });
 
-      let responseText = '';
       stream.on('text', (chunk: string) => {
-        responseText += chunk;
-        // Strip the HIGHLIGHT: marker line from the displayed text during streaming.
-        const displayText = responseText.replace(/\n?HIGHLIGHT:[\s\S]*$/, '').trim();
         setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, text: displayText } : m))
+          prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk } : m))
         );
       });
 
       await stream.finalMessage();
-
-      // Extract HIGHLIGHT phrase and finalize clean display text.
-      const trimmedResponse = responseText.trim();
-      const highlightMatch = /^HIGHLIGHT:\s*(.+)$/m.exec(trimmedResponse);
-      const cleanText = trimmedResponse.replace(/\n?HIGHLIGHT:[\s\S]*$/, '').trim();
-      setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, text: cleanText } : m))
-      );
-      if (highlightMatch?.[1]) {
-        void onHighlight?.(highlightMatch[1].trim());
-      }
     } catch {
       setMessages((prev) =>
         prev.map((m) =>

@@ -241,7 +241,7 @@ export function App() {
               ) : viewState !== 'summary' ? (
                 <OnboardingSection onScan={handleScan} statusText={statusText} scanning={viewState === 'scanning'} />
               ) : activeTab === 'chat' ? (
-                <ChatPage result={scanResult} onHighlight={sendHighlightToTab} onClearHighlight={sendClearHighlightsToTab} />
+                <ChatPage result={scanResult} />
               ) : (
                 <SummarySection
                   result={scanResult}
