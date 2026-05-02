@@ -20,8 +20,9 @@ type ViewState = 'onboarding' | 'scanning' | 'summary';
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   'Data Collection': ['data collect', 'collect data', 'personal data', 'personal information', 'information we collect', 'gather'],
   'Location Access': ['location', 'gps', 'geolocation'],
-  'Third-Party Sharing': ['third part', 'third-part', 'share your', 'share data', 'advertis', 'partner'],
-  'Ownership of Your Content': ['your content', 'ownership', 'license to', 'intellectual property', 'content you'],
+  'Third-Party Sharing': ['third-part', 'third part', 'share your', 'share data', 'advertis', 'partner'],
+  'Ownership of Content': ['your content', 'ownership', 'license to', 'intellectual property', 'content you'],
+  'Auto-Renewal': ['auto-renew', 'automatically renew', 'automatic renewal', 'recurring charge', 'subscription renew', 'billed automatically', 'unless you cancel'],
   'Dispute Resolution': ['dispute', 'arbitrat', 'class action', 'lawsuit', 'litigation']
 };
 
@@ -344,13 +345,17 @@ function SummarySection({
 
   const warningTerms = settings.customWarningTerms.map((t) => t.toLowerCase());
 
-  const isCardFlagged = (title: string, body: string) => {
-    const hay = `${title} ${body}`.toLowerCase();
-    if (settings.warningCategories.some((cat) => {
+  const getCardBadge = (card: SummaryCard): { type: 'flag'; reason: string } | { type: 'concern' } | null => {
+    const hay = `${card.title} ${card.body}`.toLowerCase();
+    for (const cat of settings.warningCategories) {
       const keywords = [...(CATEGORY_KEYWORDS[cat] ?? []), cat.toLowerCase()];
-      return keywords.some((kw) => hay.includes(kw));
-    })) return true;
-    return warningTerms.some((t) => t.length > 0 && hay.includes(t));
+      if (keywords.some((kw) => hay.includes(kw))) return { type: 'flag', reason: cat };
+    }
+    for (const t of warningTerms) {
+      if (t.length > 0 && hay.includes(t)) return { type: 'flag', reason: `"${t}"` };
+    }
+    if (card.concern) return { type: 'concern' };
+    return null;
   };
 
   const aiMode = !!generatedCards;
@@ -399,12 +404,7 @@ function SummarySection({
         </div>
       </div>
 
-      <Surface tone="white" className="summary-card">
-        <div className="summary-card__label-row">
-          <div className="summary-card__label">Disclaimer</div>
-        </div>
-        <p>AI may miss clauses or contain errors. This is not legal advice. Please consult a lawyer for important decisions.</p>
-      </Surface>
+      <p className="summary-disclaimer">AI may miss clauses or contain errors. This is not legal advice. Please consult a lawyer for important decisions.</p>
 
       {scanError && (
         <div className="summary-error-banner">
@@ -423,11 +423,12 @@ function SummarySection({
           <Surface key={card.title} tone="white" className="summary-card">
             <div className="summary-card__label-row">
               <div className="summary-card__label">{card.title}</div>
-              {isCardFlagged(card.title, card.body) ? (
-                <span className="summary-card__flag">🚩 Flag</span>
-              ) : card.concern ? (
-                <span className="summary-card__concern">⚠ Review</span>
-              ) : null}
+              {(() => {
+                const badge = getCardBadge(card);
+                if (!badge) return null;
+                if (badge.type === 'flag') return <span className="summary-card__flag" data-tooltip={badge.reason}>🚩 Flag</span>;
+                return <span className="summary-card__concern" data-tooltip="May be of concern">⚠️ Caution</span>;
+              })()}
             </div>
             <p>{card.body}</p>
           </Surface>

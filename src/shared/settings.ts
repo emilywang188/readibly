@@ -16,12 +16,12 @@ export type ReadiblySettings = {
   customWarningTerms: string[];
 };
 
-export const settingsStorageKey = 'readibly.settings.v3';
+export const settingsStorageKey = 'readibly.settings.v4';
 
 export const defaultReadiblySettings: ReadiblySettings = {
   autoScanOnOpen: false,
   showClauseHighlights: true,
   showCitations: true,
-  warningCategories: ['Data Collection', 'Third-Party Sharing', 'Dispute Resolution'],
+  warningCategories: ['Data Collection', 'Third-Party Sharing', 'Auto-Renewal'],
   customWarningTerms: []
 };
