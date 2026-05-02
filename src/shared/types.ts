@@ -34,4 +34,18 @@ export interface ClosePanelMessage {
   type: 'READIBLY_CLOSE_PANEL';
 }
 
-export type RuntimeMessage = ScanRequestMessage | CollectPageContextMessage | ClosePanelMessage;
+export interface HighlightTextMessage {
+  type: 'READIBLY_HIGHLIGHT_TEXT';
+  text: string;
+}
+
+export interface ClearHighlightsMessage {
+  type: 'READIBLY_CLEAR_HIGHLIGHTS';
+}
+
+export type RuntimeMessage =
+  | ScanRequestMessage
+  | CollectPageContextMessage
+  | ClosePanelMessage
+  | HighlightTextMessage
+  | ClearHighlightsMessage;

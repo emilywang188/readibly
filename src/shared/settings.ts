@@ -2,8 +2,8 @@ export const warningCategoryOptions = [
   'Data Collection',
   'Location Access',
   'Third-Party Sharing',
-  'Ownership of Your Content',
-  'Dispute Resolution'
+  'Ownership of Content',
+  'Auto-Renewal'
 ] as const;
 
 export type WarningCategory = (typeof warningCategoryOptions)[number];

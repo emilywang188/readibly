@@ -1,8 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { ANTHROPIC_API_KEY, CLAUDE_MODEL } from '../../shared/config';
 import type { ScanResult } from '../../shared/types';
 import { Surface } from './Surface';
+
+// Renders **bold** and *italic* markdown inline — no library needed.
+function renderMarkdown(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>;
+    return part;
+  });
+}
 
 type ChatPageProps = {
   result: ScanResult | null;
@@ -26,11 +37,15 @@ const quickPrompts = [
 function buildSystemText(result: ScanResult, showCitations: boolean): string {
   const highlightText = result.cards.map((h) => `${h.title}: ${h.body}`).join('\n');
 
+
   return `You are Readibly, a legal document assistant embedded in a browser extension. Answer questions about the following agreement concisely and clearly, flagging risks where relevant. Keep answers to 2-4 sentences unless a longer answer is clearly needed.
 
 ${showCitations ? 'When supporting your answer, quote the exact language from the document verbatim, using quotation marks.' : ''}
 
 Important: You are not a lawyer and this is not legal advice. Periodically remind the user throughout the conversation that your analysis may be incomplete or incorrect, and that they should consult a lawyer for important decisions.
+
+Only answer questions directly related to this document or to legal/privacy matters relevant to it. If the question is unrelated, respond only with: "I'm sorry, I can't answer that. It is beyond the scope of my functionality."
+
 
 Document: ${result.page.title}
 URL: ${result.page.url}
@@ -145,7 +160,7 @@ export function ChatPage({ result, showCitations = false }: ChatPageProps) {
           <div className="eyebrow">Conversation</div>
           <h2>Ask about this agreement</h2>
         </div>
-        <div className="summary-meta">{isTyping ? 'Thinking…' : 'Claude'}</div>
+        <div className="summary-meta">{isTyping ? 'Thinking…' : 'Claude AI'}</div>
       </div>
 
       <div className="disclaimer-block">
@@ -169,7 +184,9 @@ export function ChatPage({ result, showCitations = false }: ChatPageProps) {
       <Surface ref={threadRef} tone="white" className="chat-thread" role="log" aria-live="polite">
         {messages.map((message) => (
           <div key={message.id} className={`chat-bubble chat-bubble--${message.role}`}>
-            {message.text || (message.role === 'assistant' && isTyping ? '…' : '')}
+            {message.role === 'assistant'
+              ? renderMarkdown(message.text || (isTyping ? '…' : ''))
+              : message.text}
           </div>
         ))}
       </Surface>

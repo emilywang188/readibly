@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import '@fontsource/manrope/600.css';
 import '@fontsource/manrope/700.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
-import type { PanelTab, ScanResult, SummaryCard } from '../shared/types';
+import type { ClearHighlightsMessage, HighlightTextMessage, PanelTab, ScanResult, SummaryCard } from '../shared/types';
 import { defaultReadiblySettings, settingsStorageKey, type ReadiblySettings } from '../shared/settings';
 import { sendRuntimeMessage } from '../shared/messages';
 import { ChatPage } from './components/ChatPage';
@@ -18,20 +18,32 @@ import { TabRail } from './components/TabRail';
 type ViewState = 'onboarding' | 'scanning' | 'summary';
 
 // One-shot example cards used as style/format reference for Claude
-const EXAMPLE_CARDS = [
-  { title: 'Data Collection', body: 'The app gathers personal details, device data, and how you use the service, meaning your activity can be tracked and analyzed over time.', concern: true },
-  { title: 'Location Access', body: 'The app may access your location, which could be used not just for core features but also for tracking and personalization.', concern: false },
-  { title: 'Third-Party Sharing', body: 'Your data may be shared with outside companies like advertisers or analytics providers, extending its use beyond the app itself.', concern: true },
-  { title: 'Ownership of Your Content', body: 'Anything you upload can be used, modified, or distributed by the company, even if you still technically own it.', concern: true },
-  { title: 'Dispute Resolution', body: 'You may give up your right to sue in court or join class action lawsuits, limiting how you can challenge the company legally.', concern: true }
+const EXAMPLE_CARDS: SummaryCard[] = [
+  { title: 'Data Collection', body: 'The app gathers personal details, device data, and how you use the service, meaning your activity can be tracked and analyzed over time.' },
+  { title: 'Location Access', body: 'The app may access your location, which could be used not just for core features but also for tracking and personalization.' },
+  { title: 'Third-Party Sharing', body: 'Your data may be shared with outside companies like advertisers or analytics providers, extending its use beyond the app itself.' },
+  { title: 'Ownership of Content', body: 'Anything you upload can be used, modified, or distributed by the company, even if you still technically own it.' },
+  { title: 'Auto-Renewal', body: 'Your subscription renews automatically at the end of each billing period and you will be charged unless you cancel before the renewal date.' }
 ];
+
+// Example cards with source quotes — used only in the system prompt as format reference.
+const EXAMPLE_CARDS_WITH_SOURCE = EXAMPLE_CARDS.map((c, i) => ({
+  ...c,
+  source: [
+    'we collect information about how you use our services',
+    'we may collect precise location information',
+    'we may share your information with our partners',
+    'you grant us a worldwide, royalty-free license to use your content',
+    'any disputes will be resolved through binding arbitration'
+  ][i]
+}));
 
 const SUMMARY_SYSTEM = `You are Readibly, a legal document analyzer embedded in a Chrome extension. Analyze web page content and extract key legal, privacy, or contractual clauses — explained in plain English.
 
 Return ONLY a valid JSON array. No markdown fences, no preamble. Each element must be: {"title": string, "body": string, "concern": boolean}.
 
 Here is the exact style and format to follow (one-shot example):
-${JSON.stringify(EXAMPLE_CARDS, null, 2)}
+${JSON.stringify(EXAMPLE_CARDS_WITH_SOURCE, null, 2)}
 
 Rules:
 - Generate 3–7 cards covering only categories genuinely present in the content.
@@ -41,6 +53,42 @@ Rules:
 - Set "concern": false for standard, low-risk, or routine clauses.
 - If the page is not a legal/privacy document, return a single card explaining what the page is about with "concern": false.
 - Respond with the JSON array only — nothing else.`;
+
+// Tracks the last URL per tab where highlight CSS was injected.
+// Keyed by tabId so navigation (URL change) triggers re-injection.
+const cssInjectedForUrl = new Map<number, string>();
+
+async function sendHighlightToTab(text: string): Promise<void> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+    const url = tab.url ?? '';
+    // chrome.scripting.insertCSS bypasses the page's Content-Security-Policy,
+    // unlike a <style> element injected by the content script which CSP can block.
+    if (cssInjectedForUrl.get(tab.id) !== url) {
+      await chrome.scripting.insertCSS({
+        target: { tabId: tab.id },
+        css: '::highlight(readibly-highlight) { background-color: rgba(251, 210, 42, 0.45); color: inherit; }'
+      });
+      cssInjectedForUrl.set(tab.id, url);
+    }
+    await chrome.tabs.sendMessage(tab.id, { type: 'READIBLY_HIGHLIGHT_TEXT', text } satisfies HighlightTextMessage);
+  } catch {
+    // Silently ignore — page may not have a content script.
+  }
+}
+
+async function sendClearHighlightsToTab(): Promise<void> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      await chrome.tabs.sendMessage(tab.id, { type: 'READIBLY_CLEAR_HIGHLIGHTS' } satisfies ClearHighlightsMessage);
+    }
+  } catch {
+    // Silently ignore.
+  }
+}
+
 
 async function generateSummaryCards(apiKey: string, result: ScanResult): Promise<SummaryCard[]> {
   const pageContent = [
@@ -245,7 +293,7 @@ function OnboardingSection({
         <FeatureCard
           icon={<ShieldIcon className="feature-card__svg" />}
           title="Private & Secure"
-          description="Page content is only sent to Anthropic's API — never to third parties."
+          description="Page content is only sent to Anthropic's API and never to third parties."
         />
         <FeatureCard
           icon={<LockIcon className="feature-card__svg" />}
@@ -276,6 +324,9 @@ function SummarySection({
   generatedCards: SummaryCard[] | null;
   scanError: string | null;
 }) {
+  const [pinnedSource, setPinnedSource] = useState<string | null>(null);
+  const hoverSourceRef = useRef<string | null>(null);
+
   const fallbackCards: SummaryCard[] = EXAMPLE_CARDS;
 
   // Prefer AI-generated cards, fall back to example cards
@@ -290,6 +341,35 @@ function SummarySection({
   };
 
   const aiMode = !!generatedCards;
+
+  // Clear page highlight whenever this view unmounts (tab switch or rescan).
+  useEffect(() => () => { void sendClearHighlightsToTab(); }, []);
+
+  const handleMouseEnter = (source: string) => {
+    hoverSourceRef.current = source;
+    if (!pinnedSource) void sendHighlightToTab(source);
+  };
+
+  const handleMouseLeave = () => {
+    hoverSourceRef.current = null;
+    if (!pinnedSource) void sendClearHighlightsToTab();
+  };
+
+  const handleClick = (source: string) => {
+    if (pinnedSource === source) {
+      // Toggle off — restore hover highlight or clear entirely.
+      setPinnedSource(null);
+      if (hoverSourceRef.current) {
+        void sendHighlightToTab(hoverSourceRef.current);
+      } else {
+        void sendClearHighlightsToTab();
+      }
+    } else {
+      // Switch pin to this card.
+      setPinnedSource(source);
+      void sendHighlightToTab(source);
+    }
+  };
 
   return (
     <section className="summary-view">

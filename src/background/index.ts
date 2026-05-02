@@ -46,6 +46,7 @@ async function handleScanRequest(): Promise<ScanResult> {
     return buildFallbackResult('No active tab detected.');
   }
 
+  // Try #1: content script message (fast path — already injected).
   try {
     const response = await chrome.tabs.sendMessage(
       activeTab.id,
@@ -54,19 +55,72 @@ async function handleScanRequest(): Promise<ScanResult> {
 
     if (response && typeof response === 'object' && 'page' in response) {
       const scanResult = response as ScanResult;
-      const cards = await analyzeWithClaude(scanResult.page);
-      return {
-        status: 'complete',
-        generatedAt: Date.now(),
-        page: scanResult.page,
-        cards: cards
-      };
+      const page = scanResult.page;
+      const hasContent = page.excerpt &&
+        page.excerpt !== 'No visible text was detected on this page.' &&
+        page.excerpt.length > 50;
+
+      if (hasContent) {
+        const cards = await analyzeWithClaude(page);
+        return { status: 'complete', generatedAt: Date.now(), page, cards };
+      }
     }
   } catch {
-    // Fall through to fallback result.
+    // Fall through to scripting fallback.
+  }
+
+  // Try #2: scripting API (handles pages where the content script message
+  // failed or the tab was opened before the extension was installed).
+  try {
+    const [injected] = await chrome.scripting.executeScript({
+      target: { tabId: activeTab.id },
+      func: extractPageContent
+    });
+
+    const page = injected?.result as PageSnapshot | null;
+    if (page) {
+      const cards = await analyzeWithClaude(page);
+      return { status: 'complete', generatedAt: Date.now(), page, cards };
+    }
+  } catch {
+    // Fall through to final fallback.
   }
 
   return buildFallbackResult(activeTab.title ?? 'Untitled page');
+}
+
+/** Runs in the page context via chrome.scripting.executeScript — must be self-contained. */
+function extractPageContent() {
+  const headings = Array.from(document.querySelectorAll('h1, h2, h3'))
+    .map((n) => n.textContent?.trim())
+    .filter((v): v is string => Boolean(v))
+    .slice(0, 6);
+
+  let bodyText = document.body?.innerText?.replace(/\s+/g, ' ').trim() ?? '';
+
+  // Fallback: textContent (picks up text hidden from layout)
+  if (!bodyText || bodyText.length < 50) {
+    bodyText = (document.body?.textContent ?? '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Fallback: try common content containers
+  if (!bodyText || bodyText.length < 50) {
+    const containers = ['main', 'article', '[role="main"]', '#main-content', '.content', '#content'];
+    for (const sel of containers) {
+      const el = document.querySelector(sel) as HTMLElement | null;
+      const t = el?.innerText?.replace(/\s+/g, ' ').trim() ?? '';
+      if (t.length > bodyText.length) bodyText = t;
+    }
+  }
+
+  return {
+    title: document.title || 'Untitled document',
+    url: location.href,
+    hostname: location.hostname || 'local-session',
+    selection: window.getSelection()?.toString().trim() ?? '',
+    excerpt: bodyText.slice(0, 15_000) || 'No visible text was detected on this page.',
+    headings
+  };
 }
 
 async function analyzeWithClaude(page: PageSnapshot): Promise<SummaryCard[]> {
@@ -79,7 +133,9 @@ async function analyzeWithClaude(page: PageSnapshot): Promise<SummaryCard[]> {
   const systemPrompt = `You are a legal document analyst embedded in a browser extension called Readibly. The user has provided text from a Terms & Conditions, Privacy Policy, or similar agreement. Extract the most important clauses and produce a structured JSON summary.
 
 Return ONLY valid JSON with no markdown fences, matching this schema exactly:
-{"highlights":[{"title":"string","body":"string"}]}`;
+{"highlights":[{"title":"string","body":"string","source":"string"}]}
+
+"source" must be a short verbatim phrase (30–80 characters) copied exactly from the document text that the card is based on.`;
 
   const userPrompt = `Analyze this agreement from ${page.hostname}:
 
