@@ -26,6 +26,7 @@ type ChatMessage = {
   id: string;
   role: ChatRole;
   text: string;
+  showDisclaimer?: boolean;
 };
 
 const quickPrompts = [
@@ -142,6 +143,9 @@ export function ChatPage({ result, showCitations = false }: ChatPageProps) {
       });
 
       await stream.finalMessage();
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, showDisclaimer: true } : m))
+      );
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
@@ -163,9 +167,7 @@ export function ChatPage({ result, showCitations = false }: ChatPageProps) {
         <div className="summary-meta">{isTyping ? 'Thinking…' : 'Claude AI'}</div>
       </div>
 
-      <div className="disclaimer-block">
-        ⚠ Responses are AI-generated and may be inaccurate. This is <strong>not legal advice</strong>.
-      </div>
+      <p className="chat-header-disclaimer">⚠ AI-generated — not legal advice.</p>
 
       <div className="chat-quick-row">
         {quickPrompts.map((prompt) => (
@@ -187,6 +189,9 @@ export function ChatPage({ result, showCitations = false }: ChatPageProps) {
             {message.role === 'assistant'
               ? renderMarkdown(message.text || (isTyping ? '…' : ''))
               : message.text}
+            {message.showDisclaimer && (
+              <em className="chat-disclaimer">Please note: I'm not a lawyer, and this is not legal advice. For important decisions, consult a qualified attorney.</em>
+            )}
           </div>
         ))}
       </Surface>

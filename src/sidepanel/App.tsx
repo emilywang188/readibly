@@ -12,10 +12,18 @@ import { FeatureCard } from './components/FeatureCard';
 import { PrimaryButton } from './components/PrimaryButton';
 import { SettingsPage } from './components/SettingsPage';
 import { Surface } from './components/Surface';
-import { CloseIcon, LockIcon, RefreshIcon, SearchIcon, ShieldIcon } from './components/icons';
+import { CloseIcon, LockIcon, RefreshIcon, SearchIcon, ShieldIcon, YieldIcon } from './components/icons';
 import { TabRail } from './components/TabRail';
 
 type ViewState = 'onboarding' | 'scanning' | 'summary';
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  'Data Collection': ['data collect', 'collect data', 'personal data', 'personal information', 'information we collect', 'gather'],
+  'Location Access': ['location', 'gps', 'geolocation'],
+  'Third-Party Sharing': ['third part', 'third-part', 'share your', 'share data', 'advertis', 'partner'],
+  'Ownership of Your Content': ['your content', 'ownership', 'license to', 'intellectual property', 'content you'],
+  'Dispute Resolution': ['dispute', 'arbitrat', 'class action', 'lawsuit', 'litigation']
+};
 
 // One-shot example cards used as style/format reference for Claude
 const EXAMPLE_CARDS: SummaryCard[] = [
@@ -285,11 +293,13 @@ function OnboardingSection({
         disabled={scanning}
       />
 
-      <div className="disclaimer-block" style={{ margin: '12px 0' }}>
-        ⚠ AI-generated summaries may contain errors and are <strong>not legal advice</strong>. Always review the original document before agreeing.
-      </div>
-
       <div className="feature-grid">
+        <FeatureCard
+          icon={<YieldIcon className="feature-card__svg" />}
+          iconStyle={{ background: '#fef9c3', color: '#92400e' }}
+          title="Disclaimer"
+          description="AI summaries may contain errors and are not legal advice. Review the original document and consult a lawyer for important decisions."
+        />
         <FeatureCard
           icon={<ShieldIcon className="feature-card__svg" />}
           title="Private & Secure"
@@ -336,7 +346,10 @@ function SummarySection({
 
   const isCardFlagged = (title: string, body: string) => {
     const hay = `${title} ${body}`.toLowerCase();
-    if (settings.warningCategories.some((cat) => hay.includes(cat.toLowerCase()))) return true;
+    if (settings.warningCategories.some((cat) => {
+      const keywords = CATEGORY_KEYWORDS[cat] ?? [cat.toLowerCase()];
+      return keywords.some((kw) => hay.includes(kw));
+    })) return true;
     return warningTerms.some((t) => t.length > 0 && hay.includes(t));
   };
 
@@ -387,9 +400,12 @@ function SummarySection({
         </div>
       </div>
 
-      <div className="disclaimer-block">
-        ⚠ AI summaries may miss clauses or contain errors. This is <strong>not legal advice</strong> — review the original document and consult a lawyer for important decisions.
-      </div>
+      <Surface tone="white" className="summary-card">
+        <div className="summary-card__label-row">
+          <div className="summary-card__label">Disclaimer</div>
+        </div>
+        <p>AI summaries may miss clauses or contain errors. This is <strong>not legal advice</strong> — review the original document and consult a lawyer for important decisions.</p>
+      </Surface>
 
       {scanError && (
         <div className="summary-error-banner">
