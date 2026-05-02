@@ -347,7 +347,7 @@ function SummarySection({
   const isCardFlagged = (title: string, body: string) => {
     const hay = `${title} ${body}`.toLowerCase();
     if (settings.warningCategories.some((cat) => {
-      const keywords = CATEGORY_KEYWORDS[cat] ?? [cat.toLowerCase()];
+      const keywords = [...(CATEGORY_KEYWORDS[cat] ?? []), cat.toLowerCase()];
       return keywords.some((kw) => hay.includes(kw));
     })) return true;
     return warningTerms.some((t) => t.length > 0 && hay.includes(t));
@@ -389,7 +389,6 @@ function SummarySection({
       <div className="summary-header">
         <div>
           <h2>Agreement snapshot</h2>
-          {result && <div style={{ fontSize: '11px', color: 'var(--ink-2)', marginTop: '2px' }}>{result.page.title}{result.page.hostname ? ` · ${result.page.hostname}` : ''}</div>}
         </div>
         <div className="summary-meta">
           {result
@@ -404,7 +403,7 @@ function SummarySection({
         <div className="summary-card__label-row">
           <div className="summary-card__label">Disclaimer</div>
         </div>
-        <p>AI summaries may miss clauses or contain errors. This is <strong>not legal advice</strong> — review the original document and consult a lawyer for important decisions.</p>
+        <p>AI may miss clauses or contain errors. This is not legal advice. Please consult a lawyer for important decisions.</p>
       </Surface>
 
       {scanError && (
@@ -424,13 +423,11 @@ function SummarySection({
           <Surface key={card.title} tone="white" className="summary-card">
             <div className="summary-card__label-row">
               <div className="summary-card__label">{card.title}</div>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {isCardFlagged(card.title, card.body) ? (
-                  <span className="summary-card__flag">🚩 Flag</span>
-                ) : card.concern ? (
-                  <span className="summary-card__concern">⚠ Review</span>
-                ) : null}
-              </div>
+              {isCardFlagged(card.title, card.body) ? (
+                <span className="summary-card__flag">🚩 Flag</span>
+              ) : card.concern ? (
+                <span className="summary-card__concern">⚠ Review</span>
+              ) : null}
             </div>
             <p>{card.body}</p>
           </Surface>

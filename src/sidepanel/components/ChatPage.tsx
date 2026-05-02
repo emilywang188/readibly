@@ -43,8 +43,6 @@ function buildSystemText(result: ScanResult, showCitations: boolean): string {
 
 ${showCitations ? 'When supporting your answer, quote the exact language from the document verbatim, using quotation marks.' : ''}
 
-Important: You are not a lawyer and this is not legal advice. Periodically remind the user throughout the conversation that your analysis may be incomplete or incorrect, and that they should consult a lawyer for important decisions.
-
 Only answer questions directly related to this document or to legal/privacy matters relevant to it. If the question is unrelated, respond only with: "I'm sorry, I can't answer that. It is beyond the scope of my functionality."
 
 
@@ -167,7 +165,7 @@ export function ChatPage({ result, showCitations = false }: ChatPageProps) {
         <div className="summary-meta">{isTyping ? 'Thinking…' : 'Claude AI'}</div>
       </div>
 
-      <p className="chat-header-disclaimer">⚠ AI-generated — not legal advice.</p>
+      <p className="chat-header-disclaimer">AI may miss clauses or contain errors. This is not legal advice. Please consult a lawyer for important decisions.</p>
 
       <div className="chat-quick-row">
         {quickPrompts.map((prompt) => (
