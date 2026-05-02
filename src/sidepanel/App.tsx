@@ -423,12 +423,18 @@ function SummarySection({
           <Surface key={card.title} tone="white" className="summary-card">
             <div className="summary-card__label-row">
               <div className="summary-card__label">{card.title}</div>
-              {(() => {
-                const badge = getCardBadge(card);
-                if (!badge) return null;
-                if (badge.type === 'flag') return <span className="summary-card__flag" data-tooltip={badge.reason}>🚩 Flag</span>;
-                return <span className="summary-card__concern" data-tooltip="May be of concern">⚠️ Caution</span>;
-              })()}
+              <div className="summary-card__badge-slot">
+                {(() => {
+                  const badge = getCardBadge(card);
+                  if (!badge) return null;
+                  if (badge.type === 'flag') return (
+                    <span className="summary-card__flag" data-tooltip={badge.reason}><span>🚩</span>Flag</span>
+                  );
+                  return (
+                    <span className="summary-card__concern" data-tooltip="May Be of Concern"><span>⚠️</span>Caution</span>
+                  );
+                })()}
+              </div>
             </div>
             <p>{card.body}</p>
           </Surface>
