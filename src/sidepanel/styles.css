@@ -673,6 +673,8 @@ button {
   padding: 3px 6px;
   border-radius: 999px;
   line-height: 1.4;
+  position: relative;
+  cursor: default;
 }
 
 .summary-card__flag {
@@ -683,6 +685,37 @@ button {
 .summary-card__concern {
   color: #92400e;
   background: #fef9c3;
+}
+
+.summary-card__flag[data-tooltip],
+.summary-card__concern[data-tooltip] {
+  cursor: default;
+}
+
+.summary-card__flag[data-tooltip]::after,
+.summary-card__concern[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: #1e1e2e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 100;
+}
+
+.summary-card__flag[data-tooltip]:hover::after,
+.summary-card__concern[data-tooltip]:hover::after {
+  opacity: 1;
 }
 
 .summary-disclaimer {

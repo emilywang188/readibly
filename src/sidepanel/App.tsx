@@ -345,13 +345,17 @@ function SummarySection({
 
   const warningTerms = settings.customWarningTerms.map((t) => t.toLowerCase());
 
-  const isCardFlagged = (title: string, body: string) => {
-    const hay = `${title} ${body}`.toLowerCase();
-    if (settings.warningCategories.some((cat) => {
+  const getCardBadge = (card: SummaryCard): { type: 'flag'; reason: string } | { type: 'concern' } | null => {
+    const hay = `${card.title} ${card.body}`.toLowerCase();
+    for (const cat of settings.warningCategories) {
       const keywords = [...(CATEGORY_KEYWORDS[cat] ?? []), cat.toLowerCase()];
-      return keywords.some((kw) => hay.includes(kw));
-    })) return true;
-    return warningTerms.some((t) => t.length > 0 && hay.includes(t));
+      if (keywords.some((kw) => hay.includes(kw))) return { type: 'flag', reason: cat };
+    }
+    for (const t of warningTerms) {
+      if (t.length > 0 && hay.includes(t)) return { type: 'flag', reason: `"${t}"` };
+    }
+    if (card.concern) return { type: 'concern' };
+    return null;
   };
 
   const aiMode = !!generatedCards;
@@ -419,11 +423,12 @@ function SummarySection({
           <Surface key={card.title} tone="white" className="summary-card">
             <div className="summary-card__label-row">
               <div className="summary-card__label">{card.title}</div>
-              {isCardFlagged(card.title, card.body) ? (
-                <span className="summary-card__flag">🚩 Flag</span>
-              ) : card.concern ? (
-                <span className="summary-card__concern">⚠️ Caution</span>
-              ) : null}
+              {(() => {
+                const badge = getCardBadge(card);
+                if (!badge) return null;
+                if (badge.type === 'flag') return <span className="summary-card__flag" data-tooltip={badge.reason}>🚩 Flag</span>;
+                return <span className="summary-card__concern" data-tooltip="May be of concern">⚠️ Caution</span>;
+              })()}
             </div>
             <p>{card.body}</p>
           </Surface>
