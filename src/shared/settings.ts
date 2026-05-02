@@ -16,7 +16,7 @@ export type ReadiblySettings = {
   customWarningTerms: string[];
 };
 
-export const settingsStorageKey = 'readibly.settings.v2';
+export const settingsStorageKey = 'readibly.settings.v3';
 
 export const defaultReadiblySettings: ReadiblySettings = {
   autoScanOnOpen: false,
