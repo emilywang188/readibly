@@ -12,8 +12,7 @@ export interface PageSnapshot {
 export interface SummaryCard {
   title: string;
   body: string;
-  /** Short verbatim quote from the source document used for hover-highlighting. */
-  source?: string;
+  concern?: boolean;
 }
 
 export interface ScanResult {

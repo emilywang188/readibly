@@ -22,6 +22,6 @@ export const defaultReadiblySettings: ReadiblySettings = {
   autoScanOnOpen: false,
   showClauseHighlights: true,
   showCitations: true,
-  warningCategories: ['Data Collection', 'Third-Party Sharing', 'Auto-Renewal'],
-  customWarningTerms: ['arbitration', 'auto-renew', 'liability']
+  warningCategories: ['Data Collection', 'Third-Party Sharing', 'Dispute Resolution'],
+  customWarningTerms: []
 };

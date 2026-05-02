@@ -17,6 +17,7 @@ function renderMarkdown(text: string): ReactNode[] {
 
 type ChatPageProps = {
   result: ScanResult | null;
+  showCitations?: boolean;
 };
 
 type ChatRole = 'assistant' | 'user';
@@ -33,12 +34,18 @@ const quickPrompts = [
   'What should I verify before agreeing?'
 ];
 
-function buildSystemText(result: ScanResult): string {
+function buildSystemText(result: ScanResult, showCitations: boolean): string {
   const highlightText = result.cards.map((h) => `${h.title}: ${h.body}`).join('\n');
 
-  return `You are Readibly, a legal document assistant embedded in a browser extension. Answer questions about the document below using 2–4 short bullet points starting with the • character. Paraphrase everything in plain English — do not reproduce or quote document text directly.
+
+  return `You are Readibly, a legal document assistant embedded in a browser extension. Answer questions about the following agreement concisely and clearly, flagging risks where relevant. Keep answers to 2-4 sentences unless a longer answer is clearly needed.
+
+${showCitations ? 'When supporting your answer, quote the exact language from the document verbatim, using quotation marks.' : ''}
+
+Important: You are not a lawyer and this is not legal advice. Periodically remind the user throughout the conversation that your analysis may be incomplete or incorrect, and that they should consult a lawyer for important decisions.
 
 Only answer questions directly related to this document or to legal/privacy matters relevant to it. If the question is unrelated, respond only with: "I'm sorry, I can't answer that. It is beyond the scope of my functionality."
+
 
 Document: ${result.page.title}
 URL: ${result.page.url}
@@ -50,7 +57,7 @@ Analysis highlights:
 ${highlightText}`;
 }
 
-export function ChatPage({ result }: ChatPageProps) {
+export function ChatPage({ result, showCitations = false }: ChatPageProps) {
   const starter = useMemo<ChatMessage[]>(
     () => [
       {
@@ -124,7 +131,7 @@ export function ChatPage({ result }: ChatPageProps) {
       const stream = client.messages.stream({
         model: CLAUDE_MODEL,
         max_tokens: 1024,
-        system: [{ type: 'text', text: buildSystemText(result), cache_control: { type: 'ephemeral' } }],
+        system: [{ type: 'text', text: buildSystemText(result, showCitations), cache_control: { type: 'ephemeral' } }],
         messages: apiMessages
       });
 
@@ -154,6 +161,10 @@ export function ChatPage({ result }: ChatPageProps) {
           <h2>Ask about this agreement</h2>
         </div>
         <div className="summary-meta">{isTyping ? 'Thinking…' : 'Claude AI'}</div>
+      </div>
+
+      <div className="disclaimer-block">
+        ⚠ Responses are AI-generated and may be inaccurate. This is <strong>not legal advice</strong>.
       </div>
 
       <div className="chat-quick-row">

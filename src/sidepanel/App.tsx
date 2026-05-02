@@ -40,7 +40,7 @@ const EXAMPLE_CARDS_WITH_SOURCE = EXAMPLE_CARDS.map((c, i) => ({
 
 const SUMMARY_SYSTEM = `You are Readibly, a legal document analyzer embedded in a Chrome extension. Analyze web page content and extract key legal, privacy, or contractual clauses — explained in plain English.
 
-Return ONLY a valid JSON array. No markdown fences, no preamble. Each element must be: {"title": string, "body": string, "source": string}.
+Return ONLY a valid JSON array. No markdown fences, no preamble. Each element must be: {"title": string, "body": string, "concern": boolean}.
 
 Here is the exact style and format to follow (one-shot example):
 ${JSON.stringify(EXAMPLE_CARDS_WITH_SOURCE, null, 2)}
@@ -49,8 +49,9 @@ Rules:
 - Generate 3–7 cards covering only categories genuinely present in the content.
 - Body: 1–2 plain-English sentences. No legal jargon. Focus on what it means for the user.
 - Short, specific title labels (e.g. "Auto-Renewal", "Data Retention", "Payment Terms").
-- Source: a short verbatim phrase (30–80 chars) copied exactly from the document that this card is based on.
-- If the page is not a legal/privacy document, return a single card explaining what the page is about (source may be empty).
+- Set "concern": true for any clause that involves notable risk, broad rights transfers, financial obligations, or user obligations the user should be aware of — even if it doesn't match a specific keyword category.
+- Set "concern": false for standard, low-risk, or routine clauses.
+- If the page is not a legal/privacy document, return a single card explaining what the page is about with "concern": false.
 - Respond with the JSON array only — nothing else.`;
 
 // Tracks the last URL per tab where highlight CSS was injected.
@@ -241,7 +242,7 @@ export function App() {
               ) : viewState !== 'summary' ? (
                 <OnboardingSection onScan={handleScan} statusText={statusText} scanning={viewState === 'scanning'} />
               ) : activeTab === 'chat' ? (
-                <ChatPage result={scanResult} />
+                <ChatPage result={scanResult} showCitations={settings.showCitations} />
               ) : (
                 <SummarySection
                   result={scanResult}
@@ -284,6 +285,10 @@ function OnboardingSection({
         disabled={scanning}
       />
 
+      <div className="disclaimer-block" style={{ margin: '12px 0' }}>
+        ⚠ AI-generated summaries may contain errors and are <strong>not legal advice</strong>. Always review the original document before agreeing.
+      </div>
+
       <div className="feature-grid">
         <FeatureCard
           icon={<ShieldIcon className="feature-card__svg" />}
@@ -325,18 +330,13 @@ function SummarySection({
   const fallbackCards: SummaryCard[] = EXAMPLE_CARDS;
 
   // Prefer AI-generated cards, fall back to example cards
-  const summaryCards: SummaryCard[] = generatedCards ?? fallbackCards;
-
-  // Prepend a page context card when we have a real scan result
-  const displayCards: SummaryCard[] = result
-    ? [{ title: 'Page Scanned', body: `${result.page.title}${result.page.hostname ? ` · ${result.page.hostname}` : ''}` }, ...summaryCards]
-    : summaryCards;
+  const displayCards: SummaryCard[] = generatedCards ?? fallbackCards;
 
   const warningTerms = settings.customWarningTerms.map((t) => t.toLowerCase());
 
   const isCardFlagged = (title: string, body: string) => {
-    if (settings.warningCategories.includes(title as ReadiblySettings['warningCategories'][number])) return true;
     const hay = `${title} ${body}`.toLowerCase();
+    if (settings.warningCategories.some((cat) => hay.includes(cat.toLowerCase()))) return true;
     return warningTerms.some((t) => t.length > 0 && hay.includes(t));
   };
 
@@ -376,6 +376,7 @@ function SummarySection({
       <div className="summary-header">
         <div>
           <h2>Agreement snapshot</h2>
+          {result && <div style={{ fontSize: '11px', color: 'var(--ink-2)', marginTop: '2px' }}>{result.page.title}{result.page.hostname ? ` · ${result.page.hostname}` : ''}</div>}
         </div>
         <div className="summary-meta">
           {result
@@ -384,6 +385,10 @@ function SummarySection({
               : (scanError ? 'Fallback mode' : 'No API Key')
             : 'Example'}
         </div>
+      </div>
+
+      <div className="disclaimer-block">
+        ⚠ AI summaries may miss clauses or contain errors. This is <strong>not legal advice</strong> — review the original document and consult a lawyer for important decisions.
       </div>
 
       {scanError && (
@@ -399,28 +404,21 @@ function SummarySection({
       )}
 
       <div className="summary-grid">
-        {displayCards.map((card) => {
-          const canHighlight = !!result && !!card.source;
-          const isPinned = pinnedSource === card.source;
-          return (
-            <Surface
-              key={card.title}
-              tone="white"
-              className={`summary-card${canHighlight ? ' summary-card--highlightable' : ''}${isPinned ? ' summary-card--pinned' : ''}`}
-              onMouseEnter={canHighlight ? () => handleMouseEnter(card.source!) : undefined}
-              onMouseLeave={canHighlight ? handleMouseLeave : undefined}
-              onClick={canHighlight ? () => handleClick(card.source!) : undefined}
-            >
-              <div className="summary-card__label-row">
-                <div className="summary-card__label">{card.title}</div>
+        {displayCards.map((card) => (
+          <Surface key={card.title} tone="white" className="summary-card">
+            <div className="summary-card__label-row">
+              <div className="summary-card__label">{card.title}</div>
+              <div style={{ display: 'flex', gap: '4px' }}>
                 {isCardFlagged(card.title, card.body) ? (
                   <span className="summary-card__flag">🚩 Flag</span>
+                ) : card.concern ? (
+                  <span className="summary-card__concern">⚠ Review</span>
                 ) : null}
               </div>
-              <p>{card.body}</p>
-            </Surface>
-          );
-        })}
+            </div>
+            <p>{card.body}</p>
+          </Surface>
+        ))}
       </div>
     </section>
   );
