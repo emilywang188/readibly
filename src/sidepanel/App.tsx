@@ -20,8 +20,9 @@ type ViewState = 'onboarding' | 'scanning' | 'summary';
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   'Data Collection': ['data collect', 'collect data', 'personal data', 'personal information', 'information we collect', 'gather'],
   'Location Access': ['location', 'gps', 'geolocation'],
-  'Third-Party Sharing': ['third part', 'third-part', 'share your', 'share data', 'advertis', 'partner'],
-  'Ownership of Your Content': ['your content', 'ownership', 'license to', 'intellectual property', 'content you'],
+  'Third-Party Sharing': ['third-part', 'third part', 'share your', 'share data', 'advertis', 'partner'],
+  'Ownership of Content': ['your content', 'ownership', 'license to', 'intellectual property', 'content you'],
+  'Auto-Renewal': ['auto-renew', 'automatically renew', 'automatic renewal', 'recurring charge', 'subscription renew', 'billed automatically', 'unless you cancel'],
   'Dispute Resolution': ['dispute', 'arbitrat', 'class action', 'lawsuit', 'litigation']
 };
 
@@ -399,12 +400,7 @@ function SummarySection({
         </div>
       </div>
 
-      <Surface tone="white" className="summary-card">
-        <div className="summary-card__label-row">
-          <div className="summary-card__label">Disclaimer</div>
-        </div>
-        <p>AI may miss clauses or contain errors. This is not legal advice. Please consult a lawyer for important decisions.</p>
-      </Surface>
+      <p className="summary-disclaimer">AI may miss clauses or contain errors. This is not legal advice. Please consult a lawyer for important decisions.</p>
 
       {scanError && (
         <div className="summary-error-banner">
@@ -426,7 +422,7 @@ function SummarySection({
               {isCardFlagged(card.title, card.body) ? (
                 <span className="summary-card__flag">🚩 Flag</span>
               ) : card.concern ? (
-                <span className="summary-card__concern">⚠ Review</span>
+                <span className="summary-card__concern">⚠️ Caution</span>
               ) : null}
             </div>
             <p>{card.body}</p>

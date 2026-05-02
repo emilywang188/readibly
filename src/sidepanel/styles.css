@@ -663,28 +663,34 @@ button {
   margin-bottom: 0;
 }
 
-.summary-card__flag {
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #c61a2b;
-  background: rgba(198, 26, 43, 0.1);
-  padding: 3px 6px;
-  border-radius: 999px;
-}
-
+.summary-card__flag,
 .summary-card__concern {
   flex: 0 0 auto;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #92400e;
-  background: #fef9c3;
   padding: 3px 6px;
   border-radius: 999px;
+  line-height: 1.4;
+}
+
+.summary-card__flag {
+  color: #c61a2b;
+  background: rgba(198, 26, 43, 0.1);
+}
+
+.summary-card__concern {
+  color: #92400e;
+  background: #fef9c3;
+}
+
+.summary-disclaimer {
+  margin: 0 0 4px;
+  font-size: 10.5px;
+  font-style: italic;
+  color: var(--ink-2);
+  line-height: 1.4;
 }
 
 .summary-card p {
