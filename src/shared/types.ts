@@ -12,6 +12,7 @@ export interface PageSnapshot {
 export interface SummaryCard {
   title: string;
   body: string;
+  concern?: boolean;
 }
 
 export interface ScanResult {

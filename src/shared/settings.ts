@@ -23,5 +23,5 @@ export const defaultReadiblySettings: ReadiblySettings = {
   showClauseHighlights: true,
   showCitations: true,
   warningCategories: ['Data Collection', 'Third-Party Sharing', 'Dispute Resolution'],
-  customWarningTerms: ['arbitration', 'auto-renew', 'liability']
+  customWarningTerms: []
 };

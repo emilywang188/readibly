@@ -68,8 +68,8 @@ export function SettingsPage() {
         />
 
         <SettingToggle
-          label="Show citations"
-          description="Attach source snippets to generated insights."
+          label="Show citations chat"
+          description="Quote exact source language from the document in chat responses."
           checked={settings.showCitations}
           onChange={(checked) => setSettings((prev) => ({ ...prev, showCitations: checked }))}
         />
@@ -110,13 +110,14 @@ export function SettingsPage() {
 
         <div className="settings-field">
           <label className="settings-label" htmlFor="custom-warning-terms">
-            Custom warning terms
+            Custom red flags
           </label>
-          <p className="settings-help">Comma-separated keywords (for example: arbitration, indemnity, biometrics).</p>
+          <p className="settings-help">Comma-separated keywords that will always be flagged in your summary cards.</p>
           <textarea
             id="custom-warning-terms"
             className="settings-textarea"
             rows={3}
+            placeholder="arbitration, auto-renew, liability"
             value={customTermsInput}
             onChange={(event) => {
               const value = event.target.value;
