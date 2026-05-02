@@ -314,7 +314,7 @@ function OnboardingSection({
       </div>
 
       <footer className="onboarding__footer">
-        <div className="footer-kicker">THE SOVEREIGN LENS</div>
+        <div className="footer-kicker"></div>
         <p className="footer-copy">Summaries are informational, not legal advice.</p>
         <div className="status-pill" aria-live="polite">
           {statusText}
