@@ -58,7 +58,7 @@ Rules:
 - Generate 3–7 cards covering only categories genuinely present in the content.
 - Body: 1–2 plain-English sentences. No legal jargon. Focus on what it means for the user.
 - Short, specific title labels (e.g. "Auto-Renewal", "Data Retention", "Payment Terms").
-- Set "concern": true for any clause that involves notable risk, broad rights transfers, financial obligations, or user obligations the user should be aware of — even if it doesn't match a specific keyword category.
+- Set "concern": true ONLY for clauses that are genuinely dangerous or highly unusual: e.g. irrevocable/perpetual license to user content, waiver of legal rights, hidden fees, selling data to third parties, or terms that could seriously harm the user. Most clauses should be false.
 - Set "concern": false for standard, low-risk, or routine clauses.
 - If the page is not a legal/privacy document, return a single card explaining what the page is about with "concern": false.
 - Respond with the JSON array only — nothing else.`;
